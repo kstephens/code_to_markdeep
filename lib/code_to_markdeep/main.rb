@@ -233,6 +233,7 @@ module CodeToMarkdeep
           @eof = true
         end
         return nil
+      when line =~ line.lang.emacs_rx
       when line.lang.name == :Markdown
         return line
       when line =~ line.lang.begin_rx
@@ -252,7 +253,6 @@ module CodeToMarkdeep
         val = @vars[var] = @vars_stack[var].pop
         # ap(var: var, val: val, line: line.info) if var == :LINENO
       when line =~ line.lang.hidden_rx
-      when line =~ line.lang.emacs_rx
       when (@vars[:HIDDEN] || 0) > 0
       else
         $stderr.write '.' if verbose >= 1
