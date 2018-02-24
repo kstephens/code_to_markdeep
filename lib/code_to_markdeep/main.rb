@@ -52,7 +52,7 @@ module CodeToMarkdeep
   class Lang
     LANG = { }
     def self.from_file file
-      LANG.values.find {|l| l.suffix_rx =~ file } || LANG[:C]
+      LANG.values.find {|l| l.file_name_rx =~ file } || LANG[:C]
     end
     attr_reader :name
     def initialize opts
@@ -91,7 +91,7 @@ module CodeToMarkdeep
 
     C_attrs = {
       name:           :C,
-      suffix_rx:      /\.[ch]$/,
+      file_name_rx:   /\.[ch]$/,
       comment_begin:  "/*",
       comment_end:    "*/",
       comment_line:   "//",
@@ -125,17 +125,31 @@ module CodeToMarkdeep
     alias :md_end    :md_begin
 
     new(name: :C)
+    new(name: :Markdown,
+        file_name_rx:   /(\.md$)/,
+        )
     new(name: :Ruby,
-        suffix_rx:      /(Rakefile|Gemfile|Guardfile|\.rb$)/,
+        file_name_rx:   /(Rakefile|Gemfile|Guardfile|\.rb$)/,
         comment_begin:  "#",
         comment_end:    "#",
         comment_line:   "#",
         text:           "### ",
         md_begin:       "#*# ",
         md_begin_rx:     %r{^\s*#\*#},
+        convert_rx_f: lambda do | rx, k |
+          # ap(rx: rx, rx_to_s: rx.to_s, rx_inspect: rx.inspect)
+          case rx.inspect.gsub(%r{\A/|/\Z}, '')
+          when %r{(.*)(\^\\/\\/)(.*)}
+            $1 + "^\\s*###" + $3.gsub(%r{/}, ';')
+          when %r{(.*)(\\/\\/\\\$)(.*)}
+            $1 + "###\\$" + $3.gsub(%r{/}, ';')
+          else
+            nil
+          end
+        end
        )
     new(name: :Scheme,
-        suffix_rx:      /\.s(cm)?$/,
+        file_name_rx:   /\.s(cm)?$/,
         comment_begin:  ";;",
         comment_end:    "",
         comment_line:   ";;",
@@ -219,6 +233,8 @@ module CodeToMarkdeep
           @eof = true
         end
         return nil
+      when line.lang.name == :Markdown
+        return line
       when line =~ line.lang.begin_rx
         var = $1.to_sym
         val  = $2
@@ -366,6 +382,11 @@ module CodeToMarkdeep
 
   def start
     lang = line.lang
+    if lang.name == :Markdown
+      out.puts line
+      take
+      return
+    end
     case line
     when lang.blank_rx
       out.puts ""
@@ -721,10 +742,10 @@ END
     src_dir = "#{DIR}/resource"
     src_files = "#{src_dir}/**/*"
     src_files = Dir[src_files]
-    ap(src_files: src_files)
+    # ap(src_files: src_files)
     src_files.reject{|p| File.directory?(p)}.each do | src_file |
       dst_file = src_file.sub(%r{^#{src_dir}/}, output_dir + '/')
-      logger.info "Copying #{src_file} to #{dst_file}"
+      logger.info "copying #{src_file} to #{dst_file}"
       FileUtils.mkdir_p(File.dirname(dst_file))
       FileUtils.cp(src_file, dst_file)
     end
