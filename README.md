@@ -1,4 +1,4 @@
-# CodeToMarkdeep
+# code_to_markdeep
 
 A literate programming tool that targets Markdeep - http://casual-effects.com/markdeep/
 
