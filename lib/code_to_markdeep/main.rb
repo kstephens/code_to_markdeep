@@ -582,14 +582,14 @@ module CodeToMarkdeep
 <html>
 <head>
 <meta charset="utf-8" emacsmode="-*- mode: markdown; coding: utf-8; -*-">
-<link rel="stylesheet" href="dark.css?" orig-href="https://casual-effects.com/markdeep/latest/dark.css?" />
-<link rel="stylesheet" href="ctmd/dark.css?" />
+<link rel="stylesheet" href="markdeep/css/dark.css?" orig-href="https://casual-effects.com/markdeep/latest/dark.css?" />
+<link rel="stylesheet" href="ctmd/css/dark.css?" />
 <style>
 body { font-family: sans-serif !important; }
 h1, h2, h3, h4, h5, h6 { font-family: sans-serif !important; }
 .md a:link, .md a:visited { font-family: sans-serif !important; }
 </style>
-<link rel="stylesheet" href="nav.css?" />
+<link rel="stylesheet" href="ctmd/css/nav.css?" />
 </head>
 <body style="visibility: hidden;">
 END
@@ -602,10 +602,10 @@ END
 <!-- Markdeep: -->
 <style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style>
 <style>body { line-height: 130% !important; }</style>
-<script src="markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js" ></script>
-<script src="jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
-<script src="ctmd/nav2.js?"></script>
-<script src="ctmd/nav.js?"></script>
+<script src="markdeep/js/markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js" ></script>
+<script src="jquery/js/jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
+<script src="ctmd/js/nav2.js?"></script>
+<script src="ctmd/js/nav.js?"></script>
 <script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 </html>
 END
