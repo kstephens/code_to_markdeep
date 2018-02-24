@@ -1,5 +1,14 @@
-#!/usr/bin/env ruby
-require 'ostruct'
+### **Bootstrapping a Programming Language**
+
+################################
+### code-to-markdeep
+### 
+### Translates literate programs to markdeep.
+### 
+
+##$ BEGIN HIDDEN
+require 'code_to_markdeep'
+require 'fileutils'
 require 'timeout'
 require 'logger'
 require 'awesome_print'
@@ -11,8 +20,12 @@ if false
     trace_instruction: false
   }
 end
+##$ END HIDDEN
 
-class C_to_Markdeep
+module CodeToMarkdeep
+  ### Main Driver
+  class Main
+  #### String with source line metadata
   module Line
     attr_accessor :file, :lineno, :lang, :vars
     def self.create line, file = nil, lineno = nil, lang = nil
@@ -35,6 +48,7 @@ class C_to_Markdeep
     end
   end
 
+  #### A description of a programming language
   class Lang
     LANG = { }
     def self.from_file file
@@ -506,13 +520,14 @@ class C_to_Markdeep
       when :include
         file_name = args.strip
         file_name.gsub!(/"/, '')
+        file_name_abs = resolve_include(file_name)
         case state
         when :macro
-          insert_file(file_name)
+          insert_file(file_name_abs)
           insert_line("#{lang.text} #{file_name}:", lang)
         when :meta
           insert_line(lang.md_begin, lang)
-          insert_file(file_name)
+          insert_file(file_name_abs)
           insert_line(lang.md_end,   lang)
         else
           raise line
@@ -524,6 +539,10 @@ class C_to_Markdeep
     else
       raise line
     end
+  end
+
+  def resolve_include file_name
+    File.expand_path(file_name, input_dir)
   end
 
   def meta
@@ -543,7 +562,7 @@ class C_to_Markdeep
 <head>
 <meta charset="utf-8" emacsmode="-*- mode: markdown; coding: utf-8; -*-">
 <link rel="stylesheet" href="dark.css?" orig-href="https://casual-effects.com/markdeep/latest/dark.css?" />
-<link rel="stylesheet" href="dark-ox.css?" />
+<link rel="stylesheet" href="ctmd/dark.css?" />
 <style>
 body { font-family: sans-serif !important; }
 h1, h2, h3, h4, h5, h6 { font-family: sans-serif !important; }
@@ -564,8 +583,8 @@ END
 <style>body { line-height: 130% !important; }</style>
 <script src="markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js" ></script>
 <script src="jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
-<script src="nav2.js?"></script>
-<script src="nav.js?"></script>
+<script src="ctmd/nav2.js?"></script>
+<script src="ctmd/nav.js?"></script>
 <script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 </html>
 END
@@ -671,12 +690,48 @@ END
     logger.info "writing #{html} : DONE"
   end
 
-  def initialize args
-    @args = args
-  end
-  attr_reader :args
+  attr_reader :args, :exitcode
+  attr_reader :input_file, :input_dir, :output_file, :output_dir
 
-  def main
+  def main args
+    @args = args
+    @exitcode = 0
+    run!
+  end
+
+  def run!
+    logger.info "  #{$0} : started"
+    t0 = Time.now
+    # Timeout.timeout(20) do
+    process!
+    #end
+  ensure
+    t1 = Time.now
+    msg = "#{$0} : #{$! && $!.inspect} finished in #{t1 - t0} sec"
+    if exc = $!
+      logger.error msg
+      logger.error exc.backtrace.map(&:to_s) * "\n"
+      @exitcode = 1
+    else
+      logger.info  msg
+    end
+  end
+
+  def copy_resources!
+    src_dir = "#{DIR}/resource"
+    src_files = "#{src_dir}/**/*"
+    src_files = Dir[src_files]
+    ap(src_files: src_files)
+    src_files.reject{|p| File.directory?(p)}.each do | src_file |
+      dst_file = src_file.sub(%r{^#{src_dir}/}, output_dir + '/')
+      logger.info "Copying #{src_file} to #{dst_file}"
+      FileUtils.mkdir_p(File.dirname(dst_file))
+      FileUtils.cp(src_file, dst_file)
+    end
+    self
+  end
+
+  def process!
     @input_file  = args[0]
     @output_file = args[1]
     @verbose = (ENV['C_TO_MD_VERBOSE'] || 0).to_i
@@ -687,7 +742,9 @@ END
     @vars_stack = Hash.new{|h,k| h[k] = [ ]}
 
     @input_file  = args[0]
+    @input_dir  = File.dirname(File.expand_path(@input_file))
     @output_file = args[1]
+    @output_dir = File.dirname(File.expand_path(@output_file))
 
     insert_file(@input_file)
     logger.info "writing #{@output_file}"
@@ -699,22 +756,9 @@ END
 
     create_markdeep_html!
     # create_reveal_html!
-  rescue
-    logger.error "ERROR: #{$!.inspect}\n#{$!.backtrace * "\n"}"
-    raise
+    copy_resources!
+    self
   end
-
-  def run!
-    logger.info "  #{$0} : started"
-    t0 = Time.now
-    # Timeout.timeout(20) do
-    main
-    #end
-  ensure
-    t1 = Time.now
-    logger.info "  #{$0} : #{$! && $!.inspect} finished in #{t1 - t0} sec"
-  end
-
-  new(ARGV).run!
+end
 end
 

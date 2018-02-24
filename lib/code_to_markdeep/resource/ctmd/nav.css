@@ -1,0 +1,44 @@
+.body {
+    line-height: 130% !important;
+}
+.md .md-nav-anchor-group a.md-nav-anchor {
+    position: relative;
+    top: -24em;
+}
+.md .h1 {
+//    margin-top: 1em;
+}
+.md .md-nav-button-group {
+    float: right;
+    vertical-align: top;
+    font-family: Menlo, Consolas, monospace;
+}
+.md .md-nav-button-group a:link:hover {
+    text-decoration: none;
+}
+.md .md-nav-button-group a {
+    font-size: 10px;
+    background-color: #111;
+    color: #444 !important;
+    -webkit-text-fill-color: #444; // dark.css override
+}
+
+.md .longTOC a.level1 { padding-top: 0px; }
+
+.md .md-nav-line-count
+{
+    float: right;
+    // font-size: 75%;
+    font-style: italic;
+    right-padding: 0.5em;
+}
+
+.md .md-nav-hide {
+    visibility: hidden !important;
+}
+
+.md li a {
+    font-size: 75%;
+    line-height: 75%;
+}
+

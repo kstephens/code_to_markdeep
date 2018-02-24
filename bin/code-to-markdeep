@@ -1,4 +1,4 @@
 #!/usr/bin/env ruby
 $:.unshift(File.expand_path('../../lib', __FILE__))
 require 'code_to_markdeep/main'
-exit CodeToMarkDeep::Main.new.main(ARGV).exitcode
+exit CodeToMarkdeep::Main.new.main(ARGV).exitcode
