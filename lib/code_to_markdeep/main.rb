@@ -581,6 +581,32 @@ module CodeToMarkdeep
     write_html!("#{@output_file}.html", :markdeep)
   end
 
+  def markdeep_footer
+    <<END
++++++
+
+<hr/>
+
+<div class="ctmd-help">
+
+code_to_markdeep Help
+
+<div class="ctmd-help-navigation">
+
+Navigation
+
+| Button   | Key |  Action
+|:--------:|:---:|:-----------------------------:
+| ##       |     | Toggle section focus.
+| ==       | \\  | Scroll section to top.
+| &lt;&lt; | [   | Scroll to previous section.
+| &gt;&gt; | ]   | Scroll to next section.
+|          | "   | Unfocus section (show all).
+
+</div>
+END
+  end
+
   def markdeep_html_header
     <<END
 <!DOCTYPE html>
@@ -624,6 +650,9 @@ END
     write_html!("#{@output_file}.reveal.html", :reveal)
   end
 
+
+  def reveal_footer
+  end
 
   def reveal_html_header
     <<END
@@ -682,6 +711,9 @@ END
 END
   end
 
+  def jqp_footer
+  end
+
   def jqp_html_footer
     <<END
 <!-- ---------------------------------------------------------------------------- -->
@@ -713,6 +745,7 @@ END
           end
         end
       end
+      out.puts send(:"#{kind}_footer")
       out.puts send(:"#{kind}_html_footer")
     end
     logger.info "writing #{html} : DONE"
