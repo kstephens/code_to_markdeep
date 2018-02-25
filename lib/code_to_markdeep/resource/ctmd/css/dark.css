@@ -1,6 +1,4 @@
 body {
- max-width: none;
- margin: 0px;
  color: #fff;
 }
 .md .longTOC a {
@@ -19,22 +17,7 @@ body {
   color: #e8e8e8;
   border-color: #444;
   border-width: 0px;
-  // font-size: 120%;
 }
-.md div.table {
-    float: left;
-}
-.md p div.nav-diagram {
-    display: block;
-    text-align: left;
-    // float: left;
-}
-.md p svg.diagram {
-    display: block;
-    margin-left: 0px !important; // WTF.
-    // position: relative;
-}
-
 .md .ox-keyword { color: #b8e8b8; }
 .md .tilde code, .hljs-built_in { color: #eee; }
 .hljs-name, .hljs-function .hljs-title { color: #ccf; }
@@ -43,10 +26,6 @@ body {
 .hljs-meta-keyword { color: #cfc; }
 .hljs-params { color: #d3affd; }
 .hljs-title  { color: #cba3f8 !important; }
-.md div.title, contents, .md .tocHeader, h1, h2, h3, h4, h5, h6, .md .shortTOC, .md .mediumTOC, .nonumberh1, .nonumberh2, .nonumberh3, .nonumberh4, .nonumberh5, .nonumberh6 {
-margin: 0.5em 0 0.75em;
-padding: 0.5em 0 0.5em;
-}
 
 .md table.table th {
     background: none;
@@ -63,18 +42,15 @@ padding: 0.5em 0 0.5em;
     color: #fff !important;
 }
 
-.md .md-nav-line-count
+.md .ctmd-line-count
 {
     color: #888;
 }
-
-.md .listing code span.ctmd-code-lineno
-{
-    color: #444;
-    font-size: 75%;
-    verticle-align: bottom;
+.md .ctmd-nav-button-group .ctmd-nav-buttons a {
+    background-color: #111;
+    color: #444 !important;
+    -webkit-text-fill-color: #444; // dark.css override
 }
-
-.md pre.tilde {
-    padding: 0.5em 0.5em 0.5em 0.5em;
+.md .ctmd-code-lineno {
+    color: #444;
 }

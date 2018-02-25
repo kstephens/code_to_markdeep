@@ -350,7 +350,7 @@ module CodeToMarkdeep
       end
       @code_count ||= formatted_lines.size
       if opts[:line_count]
-        out.puts %Q{<span class="md-nav-line-count">#{@code_count} line#{@code_count == 1 ? '' : 's'}</span>}
+        out.puts %Q{<span class="ctmd-line-count">#{@code_count} line#{@code_count == 1 ? '' : 's'}</span>}
       end
       out.puts code_fence(lines.first)
       formatted_lines.each do | l |
@@ -589,12 +589,12 @@ module CodeToMarkdeep
 <meta charset="utf-8" emacsmode="-*- mode: markdown; coding: utf-8; -*-">
 <link rel="stylesheet" href="resource/markdeep/css/dark.css?" orig-href="https://casual-effects.com/markdeep/latest/dark.css?" />
 <link rel="stylesheet" href="resource/ctmd/css/dark.css?" />
+<link rel="stylesheet" href="resource/ctmd/css/ctmd.css?" />
 <style>
 body { font-family: sans-serif !important; }
 h1, h2, h3, h4, h5, h6 { font-family: sans-serif !important; }
 .md a:link, .md a:visited { font-family: sans-serif !important; }
 </style>
-<link rel="stylesheet" href="resource/ctmd/css/nav.css?" />
 #{@html_head.join("\n")}
 </head>
 <body style="visibility: hidden;">
