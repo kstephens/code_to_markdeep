@@ -633,7 +633,6 @@ END
 <!-- ---------------------------------------------------------------------------- -->
 <!-- Markdeep: -->
 <style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style>
-<style>body { line-height: 130% !important; }</style>
 <script src="resource/markdeep/js/markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js" ></script>
 <script src="resource/jquery/js/jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
 <script src="resource/ctmd/js/nav2.js?"></script>
