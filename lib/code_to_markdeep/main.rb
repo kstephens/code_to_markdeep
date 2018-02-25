@@ -586,14 +586,14 @@ module CodeToMarkdeep
 <html>
 <head>
 <meta charset="utf-8" emacsmode="-*- mode: markdown; coding: utf-8; -*-">
-<link rel="stylesheet" href="markdeep/css/dark.css?" orig-href="https://casual-effects.com/markdeep/latest/dark.css?" />
-<link rel="stylesheet" href="ctmd/css/dark.css?" />
+<link rel="stylesheet" href="resource/markdeep/css/dark.css?" orig-href="https://casual-effects.com/markdeep/latest/dark.css?" />
+<link rel="stylesheet" href="resource/ctmd/css/dark.css?" />
 <style>
 body { font-family: sans-serif !important; }
 h1, h2, h3, h4, h5, h6 { font-family: sans-serif !important; }
 .md a:link, .md a:visited { font-family: sans-serif !important; }
 </style>
-<link rel="stylesheet" href="ctmd/css/nav.css?" />
+<link rel="stylesheet" href="resource/ctmd/css/nav.css?" />
 #{@html_head.join("\n")}
 </head>
 <body style="visibility: hidden;">
@@ -607,11 +607,11 @@ END
 <!-- Markdeep: -->
 <style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style>
 <style>body { line-height: 130% !important; }</style>
-<script src="markdeep/js/markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js" ></script>
-<script src="jquery/js/jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
-<script src="ctmd/js/nav2.js?"></script>
+<script src="resource/markdeep/js/markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js" ></script>
+<script src="resource/jquery/js/jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
+<script src="resource/ctmd/js/nav2.js?"></script>
+<script src="resource/ctmd/js/nav.js?"></script>
 #{@html_foot.join("\n")}
-<script src="ctmd/js/nav.js?"></script>
 <script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 </html>
 END
@@ -745,12 +745,13 @@ END
   end
 
   def copy_resources!
-    src_dir = "#{DIR}/resource"
+    base_dir = DIR
+    src_dir = "#{base_dir}/resource"
     src_files = "#{src_dir}/**/*"
     src_files = Dir[src_files]
     # ap(src_files: src_files)
     src_files.reject{|p| File.directory?(p)}.each do | src_file |
-      dst_file = src_file.sub(%r{^#{src_dir}/}, output_dir + '/')
+      dst_file = src_file.sub(%r{^#{base_dir}/}, output_dir + '/')
       logger.info "copying #{src_file} to #{dst_file}"
       FileUtils.mkdir_p(File.dirname(dst_file))
       FileUtils.cp(src_file, dst_file)
