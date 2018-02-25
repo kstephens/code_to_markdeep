@@ -67,3 +67,14 @@ padding: 0.5em 0 0.5em;
 {
     color: #888;
 }
+
+.md .listing code span.ctmd-code-lineno
+{
+    color: #444;
+    font-size: 75%;
+    verticle-align: bottom;
+}
+
+.md pre.tilde {
+    padding: 0.5em 0.5em 0.5em 0.5em;
+}

@@ -277,8 +277,8 @@ module CodeToMarkdeep
   def fmt_code_line line
     show_lineno = false
     @vars[:code_lineno] ||= 0
-    @lineno_fmt ||= "/*%4d*/ "
-    @lineno_spc ||= " " * @lineno_fmt.size
+    @lineno_fmt ||= "Li%4snE"
+    @lineno_spc ||= (@lineno_fmt % '').gsub(/\s/, '_')
 
     lang = line.lang
     case line
@@ -296,16 +296,17 @@ module CodeToMarkdeep
 
     if show_lineno
       line = line.gsub("\n", "\n" + @lineno_spc)
-      "#{@lineno_fmt}%s"  % [ @vars[:code_lineno], line ]
+      lineno = (@lineno_fmt % [ @vars[:code_lineno].to_i.to_s ]).gsub(/\s/, '_') # Make it a "__12" string
     else
-      "#{@lineno_spc} %s" % [                      line ]
+      lineno =  @lineno_spc
     end
+    "%s %s" % [ lineno, line ]
   end
 
   def fmt_code line, opts = nil
     opts ||= Empty_Hash
     case line
-    when /ox_declare[^)]+;/
+    when /ox_declare[^)]+;/ # FIXME!!!!
       l = line
       line = line.
         sub(/,([^,;]+);/){|m| ",\n  #{$1};"}.
