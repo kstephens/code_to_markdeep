@@ -6,9 +6,12 @@ Supports C, Scheme, Ruby.
 
 ## Installation
 
+    $ gem install code-to-markdeep
+
 ## Usage
 
-code-to-markdeep src-file doc/index.md
+    $ bin/code-to-markdeep src-file doc/index.md
+    # Open doc/index.md.html in your favorite web browser.
 
 ## Contributing
 

@@ -253,6 +253,10 @@ module CodeToMarkdeep
         val = @vars[var] = @vars_stack[var].pop
         # ap(var: var, val: val, line: line.info) if var == :LINENO
       when line =~ line.lang.hidden_rx
+      when (@vars[:HTML_HEAD] || 0) > 0
+        @html_head << line
+      when (@vars[:HTML_FOOT] || 0) > 0
+        @html_foot << line
       when (@vars[:HIDDEN] || 0) > 0
       else
         $stderr.write '.' if verbose >= 1
@@ -590,13 +594,14 @@ h1, h2, h3, h4, h5, h6 { font-family: sans-serif !important; }
 .md a:link, .md a:visited { font-family: sans-serif !important; }
 </style>
 <link rel="stylesheet" href="ctmd/css/nav.css?" />
+#{@html_head.join("\n")}
 </head>
 <body style="visibility: hidden;">
 END
   end
 
   def markdeep_html_footer
-    <<END
+    <<"END"
 </body>
 <!-- ---------------------------------------------------------------------------- -->
 <!-- Markdeep: -->
@@ -605,6 +610,7 @@ END
 <script src="markdeep/js/markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js" ></script>
 <script src="jquery/js/jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
 <script src="ctmd/js/nav2.js?"></script>
+#{@html_foot.join("\n")}
 <script src="ctmd/js/nav.js?"></script>
 <script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 </html>
@@ -766,6 +772,8 @@ END
     @input_dir  = File.dirname(File.expand_path(@input_file))
     @output_file = args[1]
     @output_dir = File.dirname(File.expand_path(@output_file))
+    @html_head = [ ]
+    @html_foot = [ ]
 
     insert_file(@input_file)
     logger.info "writing #{@output_file}"
