@@ -1,0 +1,78 @@
+body {
+    max-width: none;
+    margin: 0px;
+    line-height: normal !important;
+}
+.md p div.ctmd-diagram {
+    display: block;
+    text-align: left;
+    // float: left;
+}
+.md div.table {
+    float: left;
+}
+.md p svg.diagram {
+    display: block;
+    margin-left: 0px !important;
+}
+.md div.title, contents,
+.md .tocHeader,
+h1, h2, h3, h4, h5, h6,
+.md .shortTOC,
+.md .mediumTOC,
+.nonumberh1,
+.nonumberh2,
+.nonumberh3,
+.nonumberh4,
+.nonumberh5,
+.nonumberh6 {
+    margin: 0.5em 0 0.75em;
+    padding: 0.5em 0 0.5em;
+}
+
+.md .longTOC a.level1 {
+    padding-top: 0px;
+}
+
+.md li a {
+    font-size:   75%;
+    line-height: 75%;
+}
+
+.md pre.tilde {
+    padding: 0.5em 0.5em 0.5em 0.5em;
+}
+
+.md .ctmd-nav-anchor-group a.ctmd-nav-anchor {
+    /*
+    position: relative;
+    top: -24em;
+   */
+}
+.md .ctmd-nav-button-group {
+    font-size: 10px;
+    float: right;
+    vertical-align: top;
+    font-family: Menlo, Consolas, monospace;
+}
+.md .ctmd-nav-button-group .ctmd-nav-buttons a:link:hover {
+    text-decoration: none;
+}
+
+.md .ctmd-line-count
+{
+    float: right;
+    font-size: 75%;
+    font-style: italic;
+    padding-right: 0.5em;
+}
+
+.md .ctmd-code-lineo
+{
+    font-size: 80%;
+}
+
+.md .ctmd-nav-hide {
+    visibility: hidden !important;
+}
+
