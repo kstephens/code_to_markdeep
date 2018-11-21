@@ -107,7 +107,7 @@ module CodeToMarkdeep
       code_fence_rx: %r{^~~~~*},
       art_rx:        %r{^\*{6,}},
 
-      begin_rx:     %r{//\$\s*BEGIN\s+(\w+)(?:\s+(\S+))?},
+      begin_rx:     %r{//\$\s*BEGIN\s+(\w+)(?:\s+(\S*))?},
       end_rx:       %r{//\$\s*END\s+(\w+)},
       hidden_rx:    %r{//\$\s*HIDDEN},
 
@@ -150,19 +150,22 @@ module CodeToMarkdeep
        )
     new(name: :Scheme,
         file_name_rx:   /\.s(cm)?$/,
-        comment_begin:  ";;",
-        comment_end:    "",
+        comment_begin:  "#|",
+        comment_end:    "|#",
         comment_line:   ";;",
         text:           ";;; ",
-        md_begin:       ";*;",
-        md_begin_rx:     %r{^\s*;\*;},
+        md_begin:       "#|>",
+        md_begin_rx:     %r{^\s*\#\|\>},
+        md_end:         "<|#",
+        md_end_rx:      %r{^\s*\<\|\#},
+        text_rx:        %r{^;;(;+) (.*)},
         convert_rx_f: lambda do | rx, k |
           # ap(rx: rx, rx_to_s: rx.to_s, rx_inspect: rx.inspect)
           case rx.inspect.gsub(%r{\A/|/\Z}, '')
           when %r{(.*)(\^\\/\\/)(.*)}
-            $1 + "^;;;" + $3.gsub(%r{/}, ';')
+            $1 + "^;;" + $3.gsub(%r{/}, ';')
           when %r{(.*)(\\/\\/\\\$)(.*)}
-            $1 + ";;;\\$" + $3.gsub(%r{/}, ';')
+            $1 + ";;\\$" + $3.gsub(%r{/}, ';')
           else
             nil
           end
@@ -189,9 +192,13 @@ module CodeToMarkdeep
       end
     end
     # lines << Line.create("//$ END LANG", file, 0, @lineno + 1)
-    @lines = lines + @lines
+    insert_lines lines
   end
 
+  def insert_lines lines
+    @lines = lines + @lines
+  end
+  
   def insert_line line, lang
     @lines.unshift Line.create(line, nil, nil, lang)
   end
@@ -226,6 +233,7 @@ module CodeToMarkdeep
       log :_peek if verbose >= 5
 
       var = nil
+      capture_macro = true
       case
       when ! line
         unless @eof
@@ -235,14 +243,26 @@ module CodeToMarkdeep
         return nil
       when line =~ line.lang.emacs_rx
       when line.lang.name == :Markdown
-        return line
+        if @macro
+          @macro << line
+        else
+          return line
+        end
       when line =~ line.lang.begin_rx
         var = $1.to_sym
         val  = $2
         @vars_stack[var].push(@vars[var])
+        # logger.info "  BEGIN #{var.inspect} #{val.inspect}"
         case val
         when nil, ""
           val = (@vars[var] || 0) + 1
+        end
+        case var
+        when :MACRO
+          macro_name = val
+          @macro_stack.push @macro
+          @macro = @macros[macro_name] = [ ]
+          logger.info "  MACRO #{macro_name} ..."
         end
         @vars = @vars.dup
         @vars[var] = val
@@ -251,6 +271,11 @@ module CodeToMarkdeep
         var = $1.to_sym
         @vars = @vars.dup
         val = @vars[var] = @vars_stack[var].pop
+        case var
+        when :MACRO
+          logger.info "  MACRO #{macro_name} : #{@macro.size} lines"
+          @macro = @macro_stack.pop
+        end
         # ap(var: var, val: val, line: line.info) if var == :LINENO
       when line =~ line.lang.hidden_rx
       when (@vars[:HTML_HEAD] || 0) > 0
@@ -261,7 +286,12 @@ module CodeToMarkdeep
       else
         $stderr.write '.' if verbose >= 1
         line.vars = @vars
-        return line
+        if @macro
+          logger.info "  captured macro #{macro_name}: #{line}"
+          @macro << line
+        else
+          return line
+        end
       end
     end
   end
@@ -275,12 +305,13 @@ module CodeToMarkdeep
   end
 
   def fmt_code_line line
+    lang = line.lang
+    lstate = lang_state(lang)
     show_lineno = false
-    @vars[:code_lineno] ||= 0
+    lstate[:code_lineno] ||= 0
     @lineno_fmt ||= "Li%4snE"
     @lineno_spc ||= (@lineno_fmt % '').gsub(/\s/, '_')
 
-    lang = line.lang
     case line
     when lang.blank_rx, lang.top_level_brace_rx, lang.comment_line_rx
     else
@@ -288,15 +319,15 @@ module CodeToMarkdeep
       @code_count  += 1
       if (line.vars[:LINENO] || 1).to_i > 0
         show_lineno = true
-        @vars[:code_lineno] += 1
+        lstate[:code_lineno] += 1
       end
     end
 
-    @vars[:code_line_count] = @vars[:code_lineno]
+    lstate[:code_line_count] = lstate[:code_lineno]
 
     if show_lineno
       line = line.gsub("\n", "\n" + @lineno_spc)
-      lineno = (@lineno_fmt % [ @vars[:code_lineno].to_i.to_s ]).gsub(/\s/, '_') # Make it a "__12" string
+      lineno = (@lineno_fmt % [ lstate[:code_lineno].to_i.to_s ]).gsub(/\s/, '_') # Make it a "__12" string
     else
       lineno =  @lineno_spc
     end
@@ -361,10 +392,10 @@ module CodeToMarkdeep
   end
   Empty_Hash = { }.freeze
 
-  def emit_text str
+  def emit_text str, line = str
     str = str.gsub(RX_var_ref) do | m |
       # logger.debug "str = #{str.inspect} $1=#{$1.inspect}"
-      @vars[$1.to_sym]
+      @vars[$1.to_sym] || lang_state(line.lang)[$1.to_sym]
     end
     out.puts str
   end
@@ -422,7 +453,7 @@ module CodeToMarkdeep
   def text
     case line
     when line.lang.text_rx
-      emit_text take($2)
+      emit_text take($2), line
     else
       state :start
     end
@@ -432,8 +463,8 @@ module CodeToMarkdeep
     case line
     when line.lang.text_rx
       level = $1.size
-      emit_text ""
-      emit_text("#" * level + " " + $2)
+      emit_text "", line
+      emit_text("#" * level + " " + $2, line)
     else
       logger.error "UNEXPECTED: #{state.inspect} |#{line}|"
       binding.pry
@@ -543,6 +574,21 @@ module CodeToMarkdeep
       action, args = $1.to_sym, $2
       take
       case action
+      when :MACRO
+        macro_name = args.strip
+        if macro_lines = @macros[macro_name]
+          logger.info "  MACRO #{macro_name.inspect} : emitting #{macro_lines.size}"
+          insert_lines macro_lines
+        else
+          raise "MACRO #{macro_name.inspect} undefined at: #{line.file}:#{line.lineno}"
+        end
+        state :start
+      when :insert
+        file_name = args.strip
+        file_name.gsub!(/"/, '')
+        file_name_abs = resolve_include(file_name)
+        insert_file(file_name_abs)
+        state :start
       when :include
         file_name = args.strip
         file_name.gsub!(/"/, '')
@@ -792,6 +838,10 @@ END
     self
   end
 
+  def lang_state lang
+    @lang_state[lang.name] ||= { }
+  end
+  
   def process!
     @input_file  = args[0]
     @output_file = args[1]
@@ -801,7 +851,10 @@ END
     @lines_taken = 0
     @vars       = { }
     @vars_stack = Hash.new{|h,k| h[k] = [ ]}
-
+    @lang_state = { }
+    @macros     = { }
+    @macro_stack = [ ]
+    
     @input_file  = args[0]
     @input_dir  = File.dirname(File.expand_path(@input_file))
     @output_file = args[1]
