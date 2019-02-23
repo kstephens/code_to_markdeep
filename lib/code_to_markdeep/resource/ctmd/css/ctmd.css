@@ -11,7 +11,8 @@ body {
     margin-left: 0px !important;
 }
 .md table.table th {
-    border: 1px solid #513302;
+    border: 1px dotted rgba(81, 51, 2, 1.0);
+    background: rgba(81, 51, 2, 0.33);
     border-top: none;
 }
 
