@@ -108,10 +108,12 @@ a em.asterisk {
         background: -webkit-linear-gradient(#d3a658, #af730c);
         border: none;
     }
-    
+
+/*
     .md table.table th:last-child {
         border-right: 1px solid #845509;
     }
+*/
     
     .md table.table tr:nth-child(even) {
         background-color: #231601;

@@ -6,11 +6,15 @@ body {
 .md p div.ctmd-diagram {
     display: block;
     text-align: left;
-    // float: left;
 }
-.md div.table {
-    float: left;
+.md table.table {
+    margin-left: 0px !important;
 }
+.md table.table th {
+    border: 1px solid #513302;
+    border-top: none;
+}
+
 .md p svg.diagram {
     display: block;
     margin-left: 0px !important;
@@ -59,11 +63,13 @@ h1, h2, h3, h4, h5, h6,
     text-decoration: none;
 }
 
-.md .ctmd-line-count
+.md span.ctmd-line-count
 {
+    display: block;
     float: right;
     font-size: 75%;
     font-style: italic;
+    padding-top: 0.5em;
     padding-right: 0.5em;
 }
 
