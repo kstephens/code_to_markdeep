@@ -12,7 +12,7 @@ require 'fileutils'
 require 'timeout'
 require 'logger'
 require 'awesome_print'
-require 'pry'
+#require 'pry'
 
 if false
   RubyVM::InstructionSequence.compile_option = {
