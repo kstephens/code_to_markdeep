@@ -11,9 +11,10 @@ body {
     margin-left: 0px !important;
 }
 .md table.table th {
-    border: 1px dotted rgba(81, 51, 2, 1.0);
+    border: 0.10em dotted rgba(81, 51, 2, 1.0);
     background: rgba(81, 51, 2, 0.33);
     border-top: none;
+    color: #eee;
 }
 
 .md p svg.diagram {
@@ -66,7 +67,7 @@ h1, h2, h3, h4, h5, h6,
 
 .md span.ctmd-line-count
 {
-    display: block;
+    /* display: block; */
     float: right;
     font-size: 75%;
     font-style: italic;
@@ -83,3 +84,11 @@ h1, h2, h3, h4, h5, h6,
     visibility: hidden !important;
 }
 
+
+.md h1 code,
+.md h2 code,
+.md h3 code,
+.md h4 code
+{
+    font-size: 110%;
+}

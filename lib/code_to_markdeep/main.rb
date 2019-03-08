@@ -681,8 +681,7 @@ END
 <style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style>
 <script src="resource/markdeep/js/markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js" ></script>
 <script src="resource/jquery/js/jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
-<script src="resource/ctmd/js/nav2.js?"></script>
-<script src="resource/ctmd/js/nav.js?"></script>
+<script type="text/javascript" src="resource/ctmd/js/nav.js?" ></script>
 #{@html_foot.join("\n")}
 <script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 </html>
