@@ -656,12 +656,13 @@ END
   def markdeep_html_header
     <<END
 <!DOCTYPE html>
-<html>
+<!-- -*- mode: markdown; coding: utf-8; -*- -->
+<html lang="en">
 <head>
-<meta charset="utf-8" emacsmode="-*- mode: markdown; coding: utf-8; -*-">
-<link rel="stylesheet" href="resource/markdeep/css/dark.css?" orig-href="https://casual-effects.com/markdeep/latest/dark.css?" />
-<link rel="stylesheet" href="resource/ctmd/css/dark.css?" />
-<link rel="stylesheet" href="resource/ctmd/css/ctmd.css?" />
+<meta charset="utf-8">
+<link rel="stylesheet" href="resource/markdeep/css/dark.css" orig-href="https://casual-effects.com/markdeep/latest/dark.css" />
+<link rel="stylesheet" href="resource/ctmd/css/dark.css" />
+<link rel="stylesheet" href="resource/ctmd/css/ctmd.css" />
 <style>
 body { font-family: sans-serif !important; }
 h1, h2, h3, h4, h5, h6 { font-family: sans-serif !important; }
@@ -679,9 +680,9 @@ END
 <!-- ---------------------------------------------------------------------------- -->
 <!-- Markdeep: -->
 <style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style>
-<script src="resource/markdeep/js/markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js" ></script>
-<script src="resource/jquery/js/jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
-<script type="text/javascript" src="resource/ctmd/js/nav.js?" ></script>
+<script src="resource/jquery/js/jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="resource/markdeep/js/markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script>
+<script src="resource/ctmd/js/nav.js"></script>
 #{@html_foot.join("\n")}
 <script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 </html>
