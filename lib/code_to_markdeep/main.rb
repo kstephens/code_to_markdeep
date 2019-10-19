@@ -115,7 +115,7 @@ module CodeToMarkdeep
       text_rx:      %r{^//(/+) (.*)},
       macro_rx:     %r{^//\#(\w+)\s*(.*)},
       meta_rx:      %r{^//\!(\w+)\s*(.*)},
-      code_line_rx: %r{^//~ (.*)},
+      code_line_rx: %r{^//; (.*)},
       md_begin_rx:  %r{^\s*/\*/},
       md_end_rx:    %r{^\s*/\*/},
       comment_line_rx: %r{^\s*//},
@@ -149,7 +149,7 @@ module CodeToMarkdeep
         end
        )
     new(name: :Scheme,
-        file_name_rx:   /\.s(cm)?$/,
+        file_name_rx:   /\.(s(cm)?|rkt)$/,
         comment_begin:  "#|",
         comment_end:    "|#",
         comment_line:   ";;",
