@@ -232,6 +232,14 @@ module CodeToMarkdeep
       line = __take
       log :_peek if verbose >= 5
 
+      # HACK:
+      case line || ''
+      when %r{^#if\s+0}
+        line = Line.create("//$ BEGIN HIDDEN", line.file, line.lineno, line.lang)
+      when %r{^#endif\s*(//\s*0|/\*\s*0\s*\*/)}
+        line = Line.create("//$ END HIDDEN"  , line.file, line.lineno, line.lang)
+      end
+
       var = nil
       capture_macro = true
       case
