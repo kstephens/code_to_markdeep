@@ -7,7 +7,7 @@ body {
 .md h1, .md h2, .md h3, .md h4, .md .tocHeader, .md .nonumberh1 {
   border-bottom: none;
 }
-.md pre.tilde {
+.md pre.tilde, .md .listing {
   background-color: #111;
   color: #eee;
   border-color: #444;
@@ -15,9 +15,16 @@ body {
 .md p > code, .md li > code {
   background-color: #282828;
   color: #e8e8e8;
-  border-color: #444;
   border-width: 0px;
+  border-color: #444;
 }
+.md pre.backtick, .md pre.backtick code {
+  background-color: #111;
+  color: #eee;
+  border-width: 0px;
+  border-color: #111;
+}
+
 .md .ox-keyword { color: #b8e8b8; }
 .md .tilde code, .hljs-built_in { color: #eee; }
 .hljs-name, .hljs-function .hljs-title { color: #ccf; }
