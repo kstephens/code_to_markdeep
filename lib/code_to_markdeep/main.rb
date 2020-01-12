@@ -467,7 +467,7 @@ module CodeToMarkdeep
       emit_text("#" * level + " " + $2, line)
     else
       logger.error "UNEXPECTED: #{state.inspect} |#{line}|"
-      binding.pry
+      # binding.pry
     end
     take
     state :start
@@ -596,7 +596,7 @@ module CodeToMarkdeep
         case state
         when :macro
           insert_file(file_name_abs)
-          insert_line("#{lang.text} #{file_name}:", lang)
+          # insert_line("#{lang.text} #{file_name}:", lang)
         when :meta
           insert_line(lang.md_begin, lang)
           insert_file(file_name_abs)
