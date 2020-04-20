@@ -109,6 +109,8 @@ module CodeToMarkdeep
 
       begin_rx:     %r{//\$\s*BEGIN\s+(\w+)(?:\s+(\S*))?},
       end_rx:       %r{//\$\s*END\s+(\w+)},
+      set_rx:       %r{//\$\s*SET\s+(\w+)(?:\s+(\S*))?},
+      append_rx:    %r{//\$\s*APPEND\s+(\w+)(?:\s+(\S*))?},
       hidden_rx:    %r{//\$\s*HIDDEN},
 
       head_rx:      %r{^////////+\s*$},
@@ -227,6 +229,11 @@ module CodeToMarkdeep
     @line = @peek
   end
 
+  def cache_regex str
+    str and
+      (@rx_cache ||= {})[str] ||= Regexp.new(str)
+  end
+
   def _peek
     while true
       line = __take
@@ -238,6 +245,9 @@ module CodeToMarkdeep
         line = Line.create("//$ BEGIN HIDDEN", line.file, line.lineno, line.lang)
       when %r{^#endif\s*(//\s*0|/\*\s*0\s*\*/)}
         line = Line.create("//$ END HIDDEN"  , line.file, line.lineno, line.lang)
+      when cache_regex(@vars[:IGNORE_RX])
+        # $stderr.puts "IGNORE_RX #{line}"
+        next
       end
 
       var = nil
@@ -256,9 +266,19 @@ module CodeToMarkdeep
         else
           return line
         end
+      when line =~ line.lang.set_rx
+        var = $1.to_sym
+        val = $2
+        $stderr.puts "SET #{var.inspect} #{val.inspect}"
+        @vars[var] = val
+      when line =~ line.lang.append_rx
+        var = $1.to_sym
+        val = $2
+        @vars[var] = Array(@vars[var])
+        @vars[var] << val
       when line =~ line.lang.begin_rx
         var = $1.to_sym
-        val  = $2
+        val = $2
         @vars_stack[var].push(@vars[var])
         # logger.info "  BEGIN #{var.inspect} #{val.inspect}"
         case val
