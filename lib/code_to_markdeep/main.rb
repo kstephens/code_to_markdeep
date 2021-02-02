@@ -29,6 +29,7 @@ module CodeToMarkdeep
   module Line
     attr_accessor :file, :lineno, :lang, :vars
     def self.create line, file = nil, lineno = nil, lang = nil
+      raise unless line
       line.extend(self) unless line.respond_to?(:file)
       line.file    = file.freeze  if file
       line.lineno  = lineno       if lineno
@@ -36,7 +37,7 @@ module CodeToMarkdeep
       line
     end
     def info
-      "#{file}:#{lineno} |#{self}|"
+      "#{file}:#{lineno} #{lang.name} |#{self}|"
     end
     def assign_to x
       x.extend(Line)
@@ -51,6 +52,7 @@ module CodeToMarkdeep
   #### A description of a programming language
   class Lang
     LANG = { }
+    TAG  = { }
     def self.from_file file
       LANG.values.find {|l| l.file_name_rx =~ file } || LANG[:C]
     end
@@ -60,12 +62,16 @@ module CodeToMarkdeep
       @opts.each do | k, v |
         instance_variable_set(:"@#{k}", v)
       end
-      @name or raise
+      @name or raise "no :name"
       C_attrs.each do | k, v |
-        next if @opts[k]
-        v = convert_rx(v, k) if Regexp === v
-        instance_variable_set(:"@#{k}", v)
+        if ! @opts.key?(k) && Regexp === v
+          instance_variable_set(:"@#{k}", convert_rx(v, k))
+        end
       end
+      @md_end    ||= @md_begin     if @md_begin
+      @md_end_rx ||= @md_begin_rx  if @md_begin_rx
+      @gfm_language ||= @name.to_s
+      TAG[@tag] ||= self
       LANG[@name] ||= self
     end
  
@@ -84,19 +90,26 @@ module CodeToMarkdeep
       result
     end
     def convert_rx_default rx, k
-      s = comment_line[0]
-      s = rx.to_s.gsub(%r{\\/}, s)
-      Regexp.new(s)
+      if comment_line
+        s = comment_line[0]
+        s = rx.to_s.gsub(%r{\\/}, s)
+        Regexp.new(s)
+      else
+        rx
+      end
     end
 
     C_attrs = {
       name:           :C,
+      gfm_language:   "C",
+      tag:            "/",
       file_name_rx:   /\.[ch]$/,
       comment_begin:  "/*",
       comment_end:    "*/",
       comment_line:   "//",
+      hidden_comment_begin_rx:  %r{^#if\s+0},
+      hidden_comment_end_rx:    %r{^#endif\s*(//\s*0|/\*\s*0\s*\*/)},
       text:           "/// ",
-      md_begin:       "/*/",
       convert_rx_f: nil,
 
       emacs_rx: %r{-\*- .* -\*-},
@@ -117,16 +130,19 @@ module CodeToMarkdeep
       text_rx:      %r{^//(/+) (.*)},
       macro_rx:     %r{^//\#(\w+)\s*(.*)},
       meta_rx:      %r{^//\!(\w+)\s*(.*)},
-      code_line_rx: %r{^//; (.*)},
+      md_begin:     "/\*/",
       md_begin_rx:  %r{^\s*/\*/},
+      md_end:       "/\*/",
       md_end_rx:    %r{^\s*/\*/},
       comment_line_rx: %r{^\s*//},
+      code_line_rx: %r{^//~(\S*) (.*)},
     }
     attr_reader *C_attrs.keys
-    alias :md_end_rx :md_begin_rx
-    alias :md_end    :md_begin
+    # alias :md_end_rx :md_begin_rx
+    # alias :md_end    :md_begin
 
-    new(name: :C)
+    # new(name: :C)
+    new(C_attrs)
     new(name: :Markdown,
         file_name_rx:   /(\.md$)/,
         )
@@ -135,6 +151,8 @@ module CodeToMarkdeep
         comment_begin:  "#",
         comment_end:    "#",
         comment_line:   "#",
+        hidden_comment_begin_rx:  %r{^=begin},
+        hidden_comment_end_rx:    %r{^=end},
         text:           "### ",
         md_begin:       "#*# ",
         md_begin_rx:     %r{^\s*#\*#},
@@ -151,17 +169,24 @@ module CodeToMarkdeep
         end
        )
     new(name: :Scheme,
+        tag:           ";",
+        gfm_language:  'lisp',
         file_name_rx:   /\.(s(cm)?|rkt)$/,
         comment_begin:  "#|",
         comment_end:    "|#",
         comment_line:   ";;",
+        hidden_comment_begin_rx:  nil,
+        hidden_comment_end_rx:    nil,
         text:           ";;; ",
         md_begin:       "#|>",
-        md_begin_rx:     %r{^\s*\#\|\>},
+        md_begin_rx:    %r{^\s*\#\|\>\s*$},
         md_end:         "<|#",
-        md_end_rx:      %r{^\s*\<\|\#},
+        md_end_rx:      %r{^\s*\<\|\#\s*$},
         text_rx:        %r{^;;(;+) (.*)},
+        html_rx:        nil,
+        code_line_rx:   %r{^;;~(\S*) (.*)},
         convert_rx_f: lambda do | rx, k |
+          # binding.pry
           # ap(rx: rx, rx_to_s: rx.to_s, rx_inspect: rx.inspect)
           case rx.inspect.gsub(%r{\A/|/\Z}, '')
           when %r{(.*)(\^\\/\\/)(.*)}
@@ -240,10 +265,11 @@ module CodeToMarkdeep
       log :_peek if verbose >= 5
 
       # HACK:
+      lang = line && line.lang
       case line || ''
-      when %r{^#if\s+0}
+      when lang && lang.hidden_comment_begin_rx
         line = Line.create("//$ BEGIN HIDDEN", line.file, line.lineno, line.lang)
-      when %r{^#endif\s*(//\s*0|/\*\s*0\s*\*/)}
+      when lang && lang.hidden_comment_end_rx
         line = Line.create("//$ END HIDDEN"  , line.file, line.lineno, line.lang)
       when cache_regex(@vars[:IGNORE_RX])
         # $stderr.puts "IGNORE_RX #{line}"
@@ -337,7 +363,7 @@ module CodeToMarkdeep
     lstate = lang_state(lang)
     show_lineno = false
     lstate[:code_lineno] ||= 0
-    @lineno_fmt ||= "Li%4snE"
+    @lineno_fmt ||= "%%Li_%4s_nE%%"
     @lineno_spc ||= (@lineno_fmt % '').gsub(/\s/, '_')
 
     case line
@@ -386,11 +412,13 @@ module CodeToMarkdeep
   def code_fence line = nil
     case line
     when nil
-      CODE_FENCE + "\n"
-    when /^\s*[(]/
-      CODE_FENCE + " Scheme"
+      "```\n"
+      #   CODE_FENCE + "\n"
+      # when /^\s*[(]/
+      #   CODE_FENCE + " Scheme\n"
     else
-      CODE_FENCE + " #{line.lang.name}"
+      "\n```#{line.lang.gfm_language}\n"
+      # CODE_FENCE + "#{line.lang.gfm_language}\n"
     end
   end
 
@@ -455,24 +483,24 @@ module CodeToMarkdeep
     when lang.blank_rx
       out.puts ""
       take
-    when lang.html_rx
-      out.puts line
-      take
     when lang.md_begin_rx
       take
       state :md
+    when lang.macro_rx
+      state :macro
+    when lang.meta_rx
+      state :meta
     when lang.head_rx
       take
       state :head
     when lang.text_rx
       out.puts ""
       state :text
-    when lang.macro_rx
-      state :macro
-    when lang.meta_rx
-      state :meta
     when lang.code_line_rx
       state :code_line
+    when lang.html_rx
+      out.puts line
+      take
     else
       state :code
     end
@@ -569,12 +597,15 @@ module CodeToMarkdeep
     while peek
       case l = peek
       when l.lang.code_line_rx
-        lines << l.assign_to(take($1))
+        tag, txt = $1, $2
+        txt = l.assign_to(take(txt))
+        txt.lang = Lang::TAG[tag] || l.lang
+        lines << txt
       else
         break
       end
     end
-    emit_code_lines lines, line_count: true
+    emit_code_lines lines # , line_count: true
     state :start
   end
 
