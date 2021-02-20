@@ -40,11 +40,13 @@ module CodeToMarkdeep
       "#{file}:#{lineno} #{lang.name} |#{self}|"
     end
     def assign_to x
-      x.extend(Line)
-      x.file = self.file
-      x.lineno = self.lineno
-      x.lang = self.lang
-      x.vars = self.vars
+      unless x.equal?(self)
+        x.extend(Line)
+        x.file    = self.file
+        x.lineno  = self.lineno
+        x.lang    = self.lang
+        x.vars    = self.vars
+      end
       x
     end
   end
@@ -390,27 +392,99 @@ module CodeToMarkdeep
     "%s %s" % [ lineno, line ]
   end
 
-  def fmt_code line, opts = nil
+  def fmt_code line_, opts = nil
     opts ||= Empty_Hash
+    max_line_length = 60
+    line = line_.rstrip
     case line
-    when /ox_declare[^)]+;/ # FIXME!!!!
-      l = line
-      line = line.
-        sub(/,([^,;]+);/){|m| ",\n  #{$1};"}.
-        gsub(/;/, ";\n  ").
-        sub(/\n[^;)\n]*\n\s*\Z/, "\n").
-        sub(/;[\n\s]+\)/, ';)').
-        sub(/[\n\s]+\Z/, '').
-        sub(/;[\n\s]+\/\//, '; //')
-      line.chomp
-      l.assign_to(line)
-      # logger.debug "   #{state} |#{line}|"
+    when %r{^ox_[^(]+\([^)]+\)\s*;} # FIXME: this doesn't belong here:
+      unless line.size <= max_line_length
+        if %r{\A(.*?)(\s*/[/*].*)\Z}.match(line) # FIXME: C specific comment
+          line, trailing_comment = $1, $2
+        else
+          trailing_comment = ''
+        end
+        line = word_break(line, max_line_length) + trailing_comment
+        # line.chomp ??
+        # logger.debug "   #{state} |\n#{_multiline! line_}| => |#{_multiline! line}|"
+      end
     end
+    line_.assign_to(line)
     line = fmt_code_line(line) if opts[:lineno]
     line
   end
 
-  CODE_FENCE = "~" * 60
+  def word_break line_, max_len = 80
+    line = line_
+    if line.size > max_len
+      m = %r{\A(.*,)?(.*)?\Z}.match(line)
+      logger.debug "m[1] = #{m[1].size} | #{m[1].inspect}"
+      logger.debug "m[2] = #{m[2].size} | #{m[2].inspect}"
+      args   = word_break_(m[1] || '', max_len, %r{([^,]*,)})
+      stmts  = word_break_(m[2] || '', max_len, %r{([^;]*;)})
+      line = args
+      line << "\n  " << stmts if stmts.size > 0
+      if line != line_
+        # msg = "/* ORIG: #{line_.size} : #{line_} */\n  /* NEW: #{line.size} */\n"
+        # logger.debug "  word_break : |\n#{msg}"
+        # line = msg << line
+      end
+    end
+    line
+  end
+
+  def word_break_ line_, max_len, token_rx
+    line = line_
+    tokens = [ '' ]
+    if line.size > max_len
+      acc = ''.dup
+      while ! line.empty? and m = token_rx.match(line)
+        before, token, line = $`, $1, $'
+        # logger.debug "  #{before.inspect} | #{token.inspect} | #{line.size}"
+        acc << before
+        if acc.size > max_len
+          tokens << acc
+          acc = ''.dup
+        end
+        acc << token
+        if acc.size > max_len
+          tokens << acc
+          acc = ''.dup
+        end
+      end
+      if (acc << line).size < 8 # HARD-CODED
+        tokens[-1] << acc
+      else
+        tokens << acc
+      end
+      tokens = tokens.reject(&:nil?).each(&:strip!).reject(&:empty?)
+      # logger.debug " token lengths: #{tokens.map(&:size).inspect}"
+      longest = tokens.map(&:size).max
+      fmt = "%-#{longest}s"
+      tokens.map!{|l| fmt % [ l ]}
+      # logger.debug " token lengths: #{tokens.map(&:size).inspect}"
+      line = tokens.join(" \\ \n  ")
+    end
+    if line != line_
+      logger.debug "  word_break_ #{token_rx}: |\n#{_multiline! line_} => #{_multiline! line}|"
+    end
+    line
+  end
+
+  def _multiline! str, anchor = '~~~'
+    str = str.to_s.gsub("\n", "\n#{anchor} ")
+    "\n#{anchor}{\n#{str}\n#{anchor}}\n"
+  end
+  
+  def _multiline str, anchor = '~~~'
+    str = str.to_s
+    if str.index("\n")
+      _multiline! str, anchor
+    else
+      str
+    end
+  end
+  
   def code_fence line = nil
     case line
     when nil
