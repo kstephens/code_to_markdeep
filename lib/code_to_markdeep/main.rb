@@ -266,14 +266,16 @@ module CodeToMarkdeep
 
       # HACK:
       lang = line && line.lang
-      case line || ''
+      case line
+      when nil
       when lang && lang.hidden_comment_begin_rx
         line = Line.create("//$ BEGIN HIDDEN", line.file, line.lineno, line.lang)
       when lang && lang.hidden_comment_end_rx
         line = Line.create("//$ END HIDDEN"  , line.file, line.lineno, line.lang)
-      when cache_regex(@vars[:IGNORE_RX])
-        # $stderr.puts "IGNORE_RX #{line}"
-        next
+      else
+        next if Array(@vars[:IGNORE_RX]).compact.any? do |rx_str|
+          cache_regex(rx_str) === line
+        end
       end
 
       var = nil
