@@ -415,12 +415,8 @@ module CodeToMarkdeep
     case line
     when nil
       "```\n"
-      #   CODE_FENCE + "\n"
-      # when /^\s*[(]/
-      #   CODE_FENCE + " Scheme\n"
     else
       "\n```#{line.lang.gfm_language}\n"
-      # CODE_FENCE + "#{line.lang.gfm_language}\n"
     end
   end
 
