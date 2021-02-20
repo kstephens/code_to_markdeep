@@ -127,8 +127,9 @@ module CodeToMarkdeep
       set_rx:       %r{//\$\s*SET\s+(\w+)(?:\s+(\S*))?},
       append_rx:    %r{//\$\s*APPEND\s+(\w+)(?:\s+(\S*))?},
       hidden_rx:    %r{//\$\s*HIDDEN},
+      meta_eol_rx:  %r{^(.+?)//\!(\w+)\s*(.*)},
 
-      head_rx:      %r{^////////+\s*$},
+      head_rx:      %r{^///////////+\s*$},
       text_rx:      %r{^//(/+) (.*)},
       macro_rx:     %r{^//\#(\w+)\s*(.*)},
       meta_rx:      %r{^//\!(\w+)\s*(.*)},
@@ -299,7 +300,7 @@ module CodeToMarkdeep
       when line =~ line.lang.set_rx
         var = $1.to_sym
         val = $2
-        $stderr.puts "SET #{var.inspect} #{val.inspect}"
+        # $stderr.puts "SET #{var.inspect} #{val.inspect}"
         @vars[var] = val
       when line =~ line.lang.append_rx
         var = $1.to_sym
@@ -335,6 +336,8 @@ module CodeToMarkdeep
           @macro = @macro_stack.pop
         end
         # ap(var: var, val: val, line: line.info) if var == :LINENO
+      when m = line.lang.meta_eol_rx.match(line)
+        meta_eol line, m
       when line =~ line.lang.hidden_rx
       when (@vars[:HTML_HEAD] || 0) > 0
         @html_head << line
@@ -741,6 +744,27 @@ module CodeToMarkdeep
       end
     else
       raise line
+    end
+  end
+
+  def meta_eol line, match
+    pre_cmd = match[1]
+    cmd  = match[2].to_sym
+    args = match[3].split(/\s+/)
+    case cmd
+    when :include
+      file_name = pre_cmd.strip.split(/\s+/)[-1]
+      file_name.gsub!(/"/, '')
+      file_name_abs = resolve_include(file_name)
+      # binding.pry
+      case args[0]
+      when "HIDDEN"
+      else
+        insert_lines [line.assign_to(pre_cmd)]
+      end
+      insert_file(file_name_abs)
+    else
+      logger.warn "meta_eol: invalid command: #{line.inspect}"
     end
   end
 
