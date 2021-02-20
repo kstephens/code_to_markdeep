@@ -25,7 +25,21 @@ body {
   border-color: #111;
 }
 
-.md .ox-keyword { color: #b8e8b8; }
+.md .ox-keyword {
+    color: #bebcff;
+    font-style: italic;
+}
+.md .ox-lisp-keyword {
+    color: #bebcff;
+    font-style: italic;
+}
+.md span.ox-author {
+    font-size: 75%;
+    line-height: 75%;
+    font-style: italic;
+    white-space: nowrap;
+}
+
 .md .tilde code, .hljs-built_in { color: #eee; }
 .hljs-name, .hljs-function .hljs-title { color: #ccf; }
 .hljs-keyword { color: #f8c0f8; }
@@ -33,6 +47,11 @@ body {
 .hljs-meta-keyword { color: #cfc; }
 .hljs-params { color: #d3affd; }
 .hljs-title  { color: #cba3f8 !important; }
+.md .hljs-comment {
+    color: #e4a124;
+    font-style: italic;
+    white-space: nowrap;
+}
 
 .md table.table th {
     background: none;
@@ -61,3 +80,4 @@ body {
 .md .ctmd-code-lineno {
     color: #444;
 }
+
