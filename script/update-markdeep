@@ -1,0 +1,14 @@
+#!/bin/sh
+set -xe
+mkdir -p tmp
+(
+cd tmp
+[ -d markdeep ] || git clone https://github.com/morgan3d/markdeep.git
+cd markdeep
+git checkout master
+git pull
+) || exit 1
+src=tmp/markdeep/latest
+dst=lib/code_to_markdeep/resource/markdeep
+cp $src/markdeep.js.min  $dst/js/
+cp $src/*.css            $dst/css/
