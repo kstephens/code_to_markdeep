@@ -1,4 +1,3 @@
-### **Bootstrapping a Programming Language**
 
 ################################
 ### code-to-markdeep
@@ -8,17 +7,22 @@
 
 ##$ BEGIN HIDDEN
 require 'code_to_markdeep'
+require 'code_to_markdeep/line'
+require 'code_to_markdeep/lang'
+require 'code_to_markdeep/source_file'
 require 'fileutils'
+require 'delegate'
 require 'timeout'
 require 'logger'
 require 'awesome_print'
-#require 'pry'
+require 'pry'
 
-if false
+begin
   RubyVM::InstructionSequence.compile_option = {
     tailcall_optimization: true,
-    trace_instruction: false
+    # trace_instruction: false
   }
+rescue
 end
 ##$ END HIDDEN
 
@@ -26,211 +30,45 @@ module CodeToMarkdeep
   ### Main Driver
   class Main
   #### String with source line metadata
-  module Line
-    attr_accessor :file, :lineno, :lang, :vars
-    def self.create line, file = nil, lineno = nil, lang = nil
-      raise unless line
-      line.extend(self) unless line.respond_to?(:file)
-      line.file    = file.freeze  if file
-      line.lineno  = lineno       if lineno
-      line.lang    = lang         if lang
-      line
-    end
-    def info
-      "#{file}:#{lineno} #{lang.name} |#{self}|"
-    end
-    def assign_to x
-      unless x.equal?(self)
-        x.extend(Line)
-        x.file    = self.file
-        x.lineno  = self.lineno
-        x.lang    = self.lang
-        x.vars    = self.vars
-      end
-      x
-    end
-  end
-
-  #### A description of a programming language
-  class Lang
-    LANG = { }
-    TAG  = { }
-    def self.from_file file
-      LANG.values.find {|l| l.file_name_rx =~ file } || LANG[:C]
-    end
-    attr_reader :name
-    def initialize opts
-      @opts = opts
-      @opts.each do | k, v |
-        instance_variable_set(:"@#{k}", v)
-      end
-      @name or raise "no :name"
-      C_attrs.each do | k, v |
-        if ! @opts.key?(k) && Regexp === v
-          instance_variable_set(:"@#{k}", convert_rx(v, k))
-        end
-      end
-      @md_end    ||= @md_begin     if @md_begin
-      @md_end_rx ||= @md_begin_rx  if @md_begin_rx
-      @gfm_language ||= @name.to_s
-      TAG[@tag] ||= self
-      LANG[@name] ||= self
-    end
- 
-    def convert_rx rx, k
-      return rx if name == :C
-      case
-      when f = convert_rx_f
-        result = f.call(rx, k)
-        result = Regexp.new(result) if String === result
-        # ap(convert_rx_f: { rx: rx, result: result }) if result
-        result = convert_rx_default(rx, k) if result == nil
-      else
-        result = convert_rx_default(rx, k)
-      end
-      # ap(convert_rx: { lang: name, k: k, rx: rx, result: result}) if name == :Scheme
-      result
-    end
-    def convert_rx_default rx, k
-      if comment_line
-        s = comment_line[0]
-        s = rx.to_s.gsub(%r{\\/}, s)
-        Regexp.new(s)
-      else
-        rx
-      end
-    end
-
-    C_attrs = {
-      name:           :C,
-      gfm_language:   "C",
-      tag:            "/",
-      file_name_rx:   /\.[ch]$/,
-      comment_begin:  "/*",
-      comment_end:    "*/",
-      comment_line:   "//",
-      hidden_comment_begin_rx:  %r{^#if\s+0},
-      hidden_comment_end_rx:    %r{^#endif\s*(//\s*0|/\*\s*0\s*\*/)},
-      text:           "/// ",
-      convert_rx_f: nil,
-
-      emacs_rx: %r{-\*- .* -\*-},
-      blank_rx: /^\s*$/,
-      html_rx:  %r{^<},
-      top_level_brace_rx: /^[}{]\s*$/,
-      var_ref_rx:    /\{\{(\w+)\}\}/,
-      code_fence_rx: %r{^~~~~*},
-      art_rx:        %r{^\*{6,}},
-
-      begin_rx:     %r{//\$\s*BEGIN\s+(\w+)(?:\s+(\S*))?},
-      end_rx:       %r{//\$\s*END\s+(\w+)},
-      set_rx:       %r{//\$\s*SET\s+(\w+)(?:\s+(\S*))?},
-      append_rx:    %r{//\$\s*APPEND\s+(\w+)(?:\s+(\S*))?},
-      hidden_rx:    %r{//\$\s*HIDDEN},
-      meta_eol_rx:  %r{^(.+?)//\!(\w+)\s*(.*)},
-
-      head_rx:      %r{^///////////+\s*$},
-      text_rx:      %r{^//(/+) (.*)},
-      macro_rx:     %r{^//\#(\w+)\s*(.*)},
-      meta_rx:      %r{^//\!(\w+)\s*(.*)},
-      md_begin:     "/\*/",
-      md_begin_rx:  %r{^\s*/\*/},
-      md_end:       "/\*/",
-      md_end_rx:    %r{^\s*/\*/},
-      comment_line_rx: %r{^\s*//},
-      code_line_rx: %r{^//~(\S*) (.*)},
-    }
-    attr_reader *C_attrs.keys
-    # alias :md_end_rx :md_begin_rx
-    # alias :md_end    :md_begin
-
-    # new(name: :C)
-    new(C_attrs)
-    new(name: :Markdown,
-        file_name_rx:   /(\.md$)/,
-        )
-    new(name: :Ruby,
-        file_name_rx:   /(Rakefile|Gemfile|Guardfile|\.rb$)/,
-        comment_begin:  "#",
-        comment_end:    "#",
-        comment_line:   "#",
-        hidden_comment_begin_rx:  %r{^=begin},
-        hidden_comment_end_rx:    %r{^=end},
-        text:           "### ",
-        md_begin:       "#*# ",
-        md_begin_rx:     %r{^\s*#\*#},
-        convert_rx_f: lambda do | rx, k |
-          # ap(rx: rx, rx_to_s: rx.to_s, rx_inspect: rx.inspect)
-          case rx.inspect.gsub(%r{\A/|/\Z}, '')
-          when %r{(.*)(\^\\/\\/)(.*)}
-            $1 + "^\\s*###" + $3.gsub(%r{/}, ';')
-          when %r{(.*)(\\/\\/\\\$)(.*)}
-            $1 + "###\\$" + $3.gsub(%r{/}, ';')
-          else
-            nil
-          end
-        end
-       )
-    new(name: :Scheme,
-        tag:           ";",
-        gfm_language:  'lisp',
-        file_name_rx:   /\.(s(cm)?|rkt)$/,
-        comment_begin:  "#|",
-        comment_end:    "|#",
-        comment_line:   ";;",
-        hidden_comment_begin_rx:  nil,
-        hidden_comment_end_rx:    nil,
-        text:           ";;; ",
-        md_begin:       "#|>",
-        md_begin_rx:    %r{^\s*\#\|\>\s*$},
-        md_end:         "<|#",
-        md_end_rx:      %r{^\s*\<\|\#\s*$},
-        text_rx:        %r{^;;(;+) (.*)},
-        html_rx:        nil,
-        code_line_rx:   %r{^;;~(\S*) (.*)},
-        convert_rx_f: lambda do | rx, k |
-          # binding.pry
-          # ap(rx: rx, rx_to_s: rx.to_s, rx_inspect: rx.inspect)
-          case rx.inspect.gsub(%r{\A/|/\Z}, '')
-          when %r{(.*)(\^\\/\\/)(.*)}
-            $1 + "^;;" + $3.gsub(%r{/}, ';')
-          when %r{(.*)(\\/\\/\\\$)(.*)}
-            $1 + ";;\\$" + $3.gsub(%r{/}, ';')
-          else
-            nil
-          end
-        end
-       )
-  end
 
   attr_reader :state, :line, :lines, :out, :vars, :verbose
+
   attr_reader :lineno
-  attr_reader :vars, :var, :dec_var
+  attr_reader :vars, :var, :dec_var, :source_files
 
   RX_var_ref    = /\{\{(\w+)\}\}/
 
-  def insert_file file
+  def insert_file file, included_by # = nil
+    file = file.strip.gsub(/"/, '')
+    path = resolve_include(file)
     lines = [ ]
     @lineno = 0
     lang = Lang.from_file(file)
-    # lines << Line.create("//$ BEGIN LANG #{lang.name}", file, 0, lang)
+    # binding.pry if file =~ /\.scm/
+    # lines << Line.new("//$ BEGIN LANG #{lang.name}", file: file, lineno: 0, lang: lang)
+    default_line = "*MAIN*"
+    included_by ||= Line.new(default_line, original: default_line, lang: lang)
+    source_file = @source_files[file] ||= SourceFile.new(file, path, lang, included_by)
     File.open(file) do | inp |
       until inp.eof?
         @lineno += 1
-        line = Line.create(inp.readline.chomp, file, lineno, lang)
+        line = inp.readline.chomp
+        line = Line.new(line, file: file, lineno: lineno, lang: lang, source_file: source_file)
         lines.push(line)
       end
     end
-    # lines << Line.create("//$ END LANG", file, 0, @lineno + 1)
+    # lines << Line.new("//$ END LANG", original: line, file, lineno + 1)
     insert_lines lines
   end
+
+  def last_line ; @lines.last ; end
 
   def insert_lines lines
     @lines = lines + @lines
   end
   
   def insert_line line, lang
-    @lines.unshift Line.create(line, nil, nil, lang)
+    @lines.unshift Line.new(line, original: line, lang: lang)
   end
 
   def logger
@@ -241,12 +79,16 @@ module CodeToMarkdeep
     logger.debug "  #{msg} #{state.inspect} |#{line || "~~EOF~~"}|"
   end
 
-  def take val = nil
+  #####################################
+  ## Stream of lines
+  ##
+  
+  def take # val = nil
     line = peek
     @peek = nil
     log :take if verbose >= 3
     @lines_taken += 1 if line
-    val || line
+    line
   end
 
   def peek
@@ -272,9 +114,9 @@ module CodeToMarkdeep
       case line
       when nil
       when lang && lang.hidden_comment_begin_rx
-        line = Line.create("//$ BEGIN HIDDEN", line.file, line.lineno, line.lang)
+        line = Line.new("//$ BEGIN HIDDEN", original: line)
       when lang && lang.hidden_comment_end_rx
-        line = Line.create("//$ END HIDDEN"  , line.file, line.lineno, line.lang)
+        line = Line.new("//$ END HIDDEN"  , original: line)
       else
         next if Array(@vars[:IGNORE_RX]).compact.any? do |rx_str|
           cache_regex(rx_str) === line
@@ -290,24 +132,25 @@ module CodeToMarkdeep
           @eof = true
         end
         return nil
-      when line =~ line.lang.emacs_rx
+      when line.lang.emacs_rx.match(line.to_s)
       when line.lang.name == :Markdown
         if @macro
           @macro << line
         else
           return line
         end
-      when line =~ line.lang.set_rx
+      when line.lang.set_rx.match(line.to_s)
         var = $1.to_sym
         val = $2
         # $stderr.puts "SET #{var.inspect} #{val.inspect}"
         @vars[var] = val
-      when line =~ line.lang.append_rx
+      when line.lang.append_rx.match(line.to_s)
+        binding.pry unless $1
         var = $1.to_sym
         val = $2
         @vars[var] = Array(@vars[var])
         @vars[var] << val
-      when line =~ line.lang.begin_rx
+      when line.lang.begin_rx.match(line.to_s)
         var = $1.to_sym
         val = $2
         @vars_stack[var].push(@vars[var])
@@ -326,7 +169,7 @@ module CodeToMarkdeep
         @vars = @vars.dup
         @vars[var] = val
         # ap(var: var, val: val, line: line.info) if var == :LINENO
-      when line =~ line.lang.end_rx
+      when line.lang.end_rx.match(line.to_s)
         var = $1.to_sym
         @vars = @vars.dup
         val = @vars[var] = @vars_stack[var].pop
@@ -336,9 +179,9 @@ module CodeToMarkdeep
           @macro = @macro_stack.pop
         end
         # ap(var: var, val: val, line: line.info) if var == :LINENO
-      when m = line.lang.meta_eol_rx.match(line)
+      when m = line.lang.meta_eol_rx.match(line.to_s)
         meta_eol line, m
-      when line =~ line.lang.hidden_rx
+      when line.lang.hidden_rx.match(line.to_s)
       when (@vars[:HTML_HEAD] || 0) > 0
         @html_head << line
       when (@vars[:HTML_FOOT] || 0) > 0
@@ -365,6 +208,10 @@ module CodeToMarkdeep
     @lines.first
   end
 
+  #####################################
+  ## Stream of lines
+  ##
+  
   def fmt_code_line line
     lang = line.lang
     lstate = lang_state(lang)
@@ -412,7 +259,7 @@ module CodeToMarkdeep
         # logger.debug "   #{state} |\n#{_multiline! line_}| => |#{_multiline! line}|"
       end
     end
-    line_.assign_to(line)
+    line = Line.new(line_)
     line = fmt_code_line(line) if opts[:lineno]
     line
   end
@@ -421,16 +268,18 @@ module CodeToMarkdeep
     line = line_
     if line.size > max_len
       m = %r{\A(.*,)?(.*)?\Z}.match(line)
-      logger.debug "m[1] = #{m[1].size} | #{m[1].inspect}"
-      logger.debug "m[2] = #{m[2].size} | #{m[2].inspect}"
+      if false
+        logger.debug "m[1] = #{m[1].size} | #{m[1].inspect}"
+        logger.debug "m[2] = #{m[2].size} | #{m[2].inspect}"
+      end
       args   = word_break_(m[1] || '', max_len, %r{([^,]*,)})
       stmts  = word_break_(m[2] || '', max_len, %r{([^;]*;)})
       line = args
       line << "\n  " << stmts if stmts.size > 0
-      if line != line_
-        # msg = "/* ORIG: #{line_.size} : #{line_} */\n  /* NEW: #{line.size} */\n"
-        # logger.debug "  word_break : |\n#{msg}"
-        # line = msg << line
+      if line != line_ && false
+        msg = "/* ORIG: #{line_.size} : #{line_} */\n  /* NEW: #{line.size} */\n"
+        logger.debug "  word_break : |\n#{msg}"
+        line = msg << line
       end
     end
     line
@@ -438,37 +287,38 @@ module CodeToMarkdeep
 
   def word_break_ line_, max_len, token_rx
     line = line_
+    return line if line.size <= max_len
     tokens = [ '' ]
-    if line.size > max_len
-      acc = ''.dup
-      while ! line.empty? and m = token_rx.match(line)
-        before, token, line = $`, $1, $'
-        # logger.debug "  #{before.inspect} | #{token.inspect} | #{line.size}"
-        acc << before
-        if acc.size > max_len
-          tokens << acc
-          acc = ''.dup
-        end
-        acc << token
-        if acc.size > max_len
-          tokens << acc
-          acc = ''.dup
-        end
-      end
-      if (acc << line).size < 8 # HARD-CODED
-        tokens[-1] << acc
-      else
+    acc = ''.dup
+    while ! line.empty? and m = token_rx.match(line)
+      before, token, line = $`, $1, $'
+      # logger.debug "  #{before.inspect} | #{token.inspect} | #{line.size}"
+      acc << before
+      if acc.size > max_len
         tokens << acc
+        acc = ''.dup
       end
-      tokens = tokens.reject(&:nil?).each(&:strip!).reject(&:empty?)
-      # logger.debug " token lengths: #{tokens.map(&:size).inspect}"
-      longest = tokens.map(&:size).max
-      fmt = "%-#{longest}s"
-      tokens.map!{|l| fmt % [ l ]}
-      # logger.debug " token lengths: #{tokens.map(&:size).inspect}"
-      line = tokens.join(" \\ \n  ")
+      acc << token
+      if acc.size > max_len
+        tokens << acc
+        acc = ''.dup
+      end
     end
-    if line != line_
+    if (acc << line).size < 8 # HARD-CODED
+      tokens[-1] << acc
+    else
+      tokens << acc
+    end
+    tokens = tokens.reject(&:nil?).each(&:strip!).reject(&:empty?)
+    # logger.debug " token lengths: #{tokens.map(&:size).inspect}"
+    longest = tokens.map(&:size).max
+    fmt = "%-#{longest}s"
+    tokens.map!{|l| fmt % [ l ]}
+    # logger.debug " token lengths: #{tokens.map(&:size).inspect}"
+    sep = " \n  "
+    # sep = " \\ \n  "
+    line = tokens.join(sep)
+    if false and line != line_
       logger.debug "  word_break_ #{token_rx}: |\n#{_multiline! line_} => #{_multiline! line}|"
     end
     line
@@ -524,7 +374,7 @@ module CodeToMarkdeep
   Empty_Hash = { }.freeze
 
   def emit_text str, line = str
-    str = str.gsub(RX_var_ref) do | m |
+    str = str.to_s.gsub(RX_var_ref) do | m |
       # logger.debug "str = #{str.inspect} $1=#{$1.inspect}"
       @vars[$1.to_sym] || lang_state(line.lang)[$1.to_sym]
     end
@@ -584,7 +434,8 @@ module CodeToMarkdeep
   def text
     case line
     when line.lang.text_rx
-      emit_text take($2), line
+      take
+      emit_text $2, line
     else
       state :start
     end
@@ -607,6 +458,7 @@ module CodeToMarkdeep
   def md
     while line = peek
       lang = line.lang
+      # binding.pry if line =~ %r{^\<\|\#}
       case peek
       when lang.art_rx
         take
@@ -639,11 +491,12 @@ module CodeToMarkdeep
       art_border = '*' * width
 
       out.puts art_border
+      str = String.new(line.to_s)
       @art_lines.each do | line |
         # Expand line to fence width
-        line << ' ' while line.size < width
-        line[width - 1] = '*'
-        out.puts line
+        str << ' ' while str.size < width
+        str[width - 1] = '*'
+        out.puts str
       end
       out.puts art_border
       @art_lines = nil
@@ -661,7 +514,8 @@ module CodeToMarkdeep
         take
         break
       else
-        lines << l.assign_to(take)
+        line = take
+        lines << Line.new(line)
       end
     end
     emit_code_lines lines, line_count: true
@@ -673,7 +527,7 @@ module CodeToMarkdeep
       case l = peek
       when l.lang.code_line_rx
         tag, txt = $1, $2
-        txt = l.assign_to(take(txt))
+        txt = Line.new(txt, original: take)
         txt.lang = Lang::TAG[tag] || l.lang
         lines << txt
       else
@@ -718,22 +572,17 @@ module CodeToMarkdeep
         end
         state :start
       when :insert
-        file_name = args.strip
-        file_name.gsub!(/"/, '')
-        file_name_abs = resolve_include(file_name)
-        insert_file(file_name_abs)
+        insert_file(args, line)
         state :start
       when :include
-        file_name = args.strip
-        file_name.gsub!(/"/, '')
-        file_name_abs = resolve_include(file_name)
         case state
         when :macro
-          insert_file(file_name_abs)
+          insert_file(args, line)
           # insert_line("#{lang.text} #{file_name}:", lang)
         when :meta
           insert_line(lang.md_begin, lang)
-          insert_file(file_name_abs)
+          # binding.pry if file_name_abs =~ /\.scm$/
+          insert_file(args, line)
           insert_line(lang.md_end,   lang)
         else
           raise line
@@ -754,15 +603,13 @@ module CodeToMarkdeep
     case cmd
     when :include
       file_name = pre_cmd.strip.split(/\s+/)[-1]
-      file_name.gsub!(/"/, '')
-      file_name_abs = resolve_include(file_name)
       # binding.pry
       case args[0]
       when "HIDDEN"
       else
-        insert_lines [line.assign_to(pre_cmd)]
+        insert_lines [Line.new(pre_cmd, original: line)]
       end
-      insert_file(file_name_abs)
+      insert_file(file_name, line)
     else
       logger.warn "meta_eol: invalid command: #{line.inspect}"
     end
@@ -804,6 +651,10 @@ Navigation
 | &gt;&gt; | ]   | Scroll to next section.
 |          | "   | Unfocus section (show all).
 
+Made with Markdeep:
+
+http://casual-effects.com/markdeep/
+
 </div>
 END
   end
@@ -815,14 +666,11 @@ END
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<link rel="stylesheet" href="resource/markdeep/css/dark.css" orig-href="https://casual-effects.com/markdeep/latest/dark.css" />
+<link rel="stylesheet" href="resource/markdeep/css/dark.css"
+                  orig-href="https://casual-effects.com/markdeep/latest/dark.css" />
 <link rel="stylesheet" href="resource/ctmd/css/dark.css" />
 <link rel="stylesheet" href="resource/ctmd/css/ctmd.css" />
-<style>
-body { font-family: sans-serif !important; }
-h1, h2, h3, h4, h5, h6 { font-family: sans-serif !important; }
-.md a:link, .md a:visited { font-family: sans-serif !important; }
-</style>
+<link rel="stylesheet" href="resource/css/doc.css" /> <!-- Optional: but must exist -->
 #{@html_head.join("\n")}
 </head>
 <body style="visibility: hidden;">
@@ -834,12 +682,34 @@ END
 </body>
 <!-- ---------------------------------------------------------------------------- -->
 <!-- Markdeep: -->
-<style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style>
-<script src="resource/jquery/js/jquery-3.2.1.min.js" orig-src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-<script src="resource/markdeep/js/markdeep.min.js" orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script>
+
+<!-- ------------------------------------------------------- -->
+
+<!-- 
+<style class="fallback">
+body {
+  visibility:  hidden;
+  white-space: pre;
+  font-family: monospace;
+}
+</style>
+ -->
+
+<!-- ------------------------------------------------------- -->
+
+<script src="resource/jquery/js/jquery-3.2.1.min.js"
+   orig-src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="resource/markdeep/js/markdeep.min.js"
+   orig-src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script>
+
+<!-- ------------------------------------------------------- -->
+<script src="resource/ctmd/js/core.js"></script>
 <script src="resource/ctmd/js/nav.js"></script>
+<script src="resource/js/doc.js"></script> <!-- optional: but must exist -->
 #{@html_foot.join("\n")}
-<script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
+<script>
+window.alreadyProcessedMarkdeep || (document.body.style.visibility="visible")
+</script>
 </html>
 END
   end
@@ -954,6 +824,10 @@ END
   attr_reader :args, :exitcode
   attr_reader :input_file, :input_dir, :output_file, :output_dir
 
+  def initialize
+    @source_files = { }
+  end
+  
   def main args
     @args = args
     @exitcode = 0
@@ -986,9 +860,21 @@ END
     # ap(src_files: src_files)
     src_files.reject{|p| File.directory?(p)}.each do | src_file |
       dst_file = src_file.sub(%r{^#{base_dir}/}, output_dir + '/')
-      logger.info "copying #{src_file} to #{dst_file}"
-      FileUtils.mkdir_p(File.dirname(dst_file))
+      dst_dir = File.dirname(dst_file)
+      logger.info "cp #{src_file} #{dst_file}"
+      unless File.exist? dst_dir
+        logger.info "mkdir #{dst_dir}"
+        FileUtils.mkdir_p(dst_dir)
+      end
       FileUtils.cp(src_file, dst_file)
+    end
+    self
+  end
+
+  def process_sources!
+    logger.info " Source files: #{source_files.size}:"
+    source_files.each do | name, sf |
+      logger.info "  #{sf} | #{sf.included_by.info}"
     end
     self
   end
@@ -1000,7 +886,7 @@ END
   def process!
     @input_file  = args[0]
     @output_file = args[1]
-    @verbose = (ENV['C_TO_MD_VERBOSE'] || 0).to_i
+    @verbose = (ENV['CTMD_VERBOSE'] || 0).to_i
     @lineno = 0
     @lines = [ ]
     @lines_taken = 0
@@ -1017,7 +903,11 @@ END
     @html_head = [ ]
     @html_foot = [ ]
 
-    insert_file(@input_file)
+    lang = Lang.from_file(@input_file)
+    input_line = "<<#{@input_file}>>".freeze
+    input_line = Line.new(input_line, original: input_line, lang: lang)
+    insert_file(@input_file, input_line)
+
     logger.info "writing #{@output_file}"
     File.open(@output_file, "w") do | out |
       @out = out
@@ -1028,6 +918,7 @@ END
     create_markdeep_html!
     # create_reveal_html!
     copy_resources!
+    process_sources!
     self
   end
 end

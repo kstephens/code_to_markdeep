@@ -1,4 +1,19 @@
+/* markdeep dark.css overrides */
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6,
+.md h7
+{
+    font-family: Arial, Helvetica, sans-serif !important;
+}
+.md a:link, .md a:visited {
+    font-family: Arial, Helvetica, sans-serif !important;
+}
 body {
+    font-family: Arial, Helvetica, sans-serif !important;
     max-width: none;
     margin: 0px;
     line-height: normal !important;
@@ -11,10 +26,10 @@ body {
     margin-left: 0px !important;
 }
 .md table.table th {
-    border: 0.10em dotted rgba(81, 51, 2, 1.0);
-    background: rgba(81, 51, 2, 0.33);
-    border-top: none;
-    color: #eee;
+    border:      0.10em dotted rgba(81, 51, 2, 1.0);
+    background:  rgba(81, 51, 2, 0.33);
+    border-top:  none;
+    color:       #eee;
 }
 
 .md p svg.diagram {
@@ -23,7 +38,13 @@ body {
 }
 .md div.title, contents,
 .md .tocHeader,
-h1, h2, h3, h4, h5, h6,
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6,
+.md h7,
 .md .shortTOC,
 .md .mediumTOC,
 .nonumberh1,
@@ -32,8 +53,8 @@ h1, h2, h3, h4, h5, h6,
 .nonumberh4,
 .nonumberh5,
 .nonumberh6 {
-    margin: 0.5em 0 0.75em;
-    padding: 0.5em 0 0.5em;
+    margin: 0.25em 0 0.25em;
+    padding: 0.25em 0 0.25em;
 }
 
 .md .longTOC a.level1 {
@@ -47,6 +68,38 @@ h1, h2, h3, h4, h5, h6,
 
 .md pre.tilde {
     padding: 0.5em 0.5em 0.5em 0.5em;
+}
+
+.md span.ctmd-line-count
+{
+    /* display: block; */
+    /*
+     https://stackoverflow.com/questions/2941189/how-to-overlay-one-div-over-another-div
+     position: absolute; top: 0;
+    */
+    float: right;
+    font-size: 75%;
+    font-style: italic;
+    padding-top: 0.5em;
+    padding-right: 0.5em;
+}
+
+.md .ctmd-code-lineno
+{
+    font-size: 80%;
+}
+
+.md h1 code,
+.md h2 code,
+.md h3 code,
+.md h4 code,
+.md h5 code,
+.md h6 code,
+.md h7 code
+{
+    /*
+    font-size: 110%;
+*/
 }
 
 .md .ctmd-nav-anchor-group a.ctmd-nav-anchor {
@@ -64,31 +117,20 @@ h1, h2, h3, h4, h5, h6,
 .md .ctmd-nav-button-group .ctmd-nav-buttons a:link:hover {
     text-decoration: none;
 }
-
-.md span.ctmd-line-count
-{
-    /* display: block; */
-    float: right;
-    font-size: 75%;
-    font-style: italic;
-    padding-top: 0.5em;
-    padding-right: 0.5em;
-}
-
-.md .ctmd-code-lineno
-{
-    font-size: 80%;
-}
-
 .md .ctmd-nav-hide {
     visibility: hidden !important;
 }
 
+/* User Agent Override */
 
-.md h1 code,
-.md h2 code,
-.md h3 code,
-.md h4 code
-{
-    font-size: 110%;
+pre {
+    margin: 0px 0px !important;
+}
+
+p {
+    display: block;
+    margin-block-start: 1em;
+    margin-block-end: 0.75em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
 }
