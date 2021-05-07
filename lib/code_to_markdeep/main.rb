@@ -23,14 +23,6 @@ require 'timeout'
 require 'logger'
 require 'awesome_print'
 require 'pry'
-
-begin
-  RubyVM::InstructionSequence.compile_option = {
-    tailcall_optimization: true,
-    # trace_instruction: false
-  }
-rescue
-end
 ##$ END HIDDEN
 
 module CodeToMarkdeep
@@ -98,6 +90,7 @@ module CodeToMarkdeep
 
     create_markdeep_html!
     # create_reveal_html!
+    
     copy_resources!
     process_sources!
     self

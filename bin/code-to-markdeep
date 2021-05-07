@@ -1,4 +1,11 @@
 #!/usr/bin/env ruby
+begin
+  RubyVM::InstructionSequence.compile_option = {
+    tailcall_optimization: true,
+    # trace_instruction: false
+  }
+rescue
+end
 $:.unshift(File.expand_path('../../lib', __FILE__))
 require 'code_to_markdeep/main'
 exit CodeToMarkdeep::Main.new.main(ARGV).exitcode
