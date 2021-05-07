@@ -2,6 +2,32 @@ require 'code_to_markdeep'
 
 module CodeToMarkdeep
   module Output
+    def self.included target
+      super
+      INITS << :output_initialize
+    end
+
+    attr_reader :output_file, :output_dir
+    attr_reader :out
+    
+    def output_initialize *args
+      @html_head = [ ]
+      @html_foot = [ ]
+    end
+
+    def write_output_file! file
+      @output_file = file
+      @output_dir = File.dirname(File.expand_path(@output_file))
+      logger.info "writing #{@output_file}"
+      File.open(@output_file, "w") do | out |
+        @out = out
+        parse!
+      end
+      logger.info "writing #{@output_file} : DONE"
+    end
+
+    #####################################
+    
     def emit_text str, line = str
       str = str.to_s.gsub(RX_var_ref) do | m |
         # logger.debug "str = #{str.inspect} $1=#{$1.inspect}"
@@ -44,6 +70,14 @@ module CodeToMarkdeep
         FileUtils.mkdir_p(dst_dir)
       end
       FileUtils.cp(src_file, dst_file)
+    end
+    self
+  end
+
+  def process_sources!
+    logger.info " Source files: #{source_files.size}:"
+    source_files.each do | name, sf |
+      logger.info "  #{sf} | #{sf.included_by.info}"
     end
     self
   end

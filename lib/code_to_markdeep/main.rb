@@ -34,27 +34,13 @@ end
 ##$ END HIDDEN
 
 module CodeToMarkdeep
-  RX_var_ref    = /\{\{(\w+)\}\}/
+  INITS = [ ]
 
   ### Main Driver
   class Main
-  #### String with source line metadata
-
-  attr_reader :line, :lines, :out, :vars, :verbose
-
-  attr_reader :lineno
-  attr_reader :vars, :var, :dec_var, :source_files
 
   attr_reader :args, :exitcode
-  attr_reader :input_file, :input_dir, :output_file, :output_dir
-
-  def logger
-    @logger ||= ::Logger.new($stderr)
-  end
-
-  def log msg = nil
-    logger.debug "  #{msg} #{state.inspect} |#{line || "~~EOF~~"}|"
-  end
+  attr_reader :verbose, :logger
 
   #####################################
 
@@ -66,24 +52,26 @@ module CodeToMarkdeep
   include Code
   include Meta
 
-  ##############################
+  #####################################
 
   def initialize
-    @source_files = { }
+    @verbose = (ENV['CTMD_VERBOSE'] || 0).to_i
+    @logger  = ::Logger.new($stderr)
   end
   
   def main args
     @args = args
     @exitcode = 0
+    @rx_cache = {}
     run!
   end
 
   def run!
     logger.info "  #{$0} : started"
     t0 = Time.now
-    # Timeout.timeout(20) do
-    process!
-    #end
+    Timeout.timeout(20) do
+      process! args[0], args[1]
+    end
   ensure
     t1 = Time.now
     msg = "#{$0} : #{$! && $!.inspect} finished in #{t1 - t0} sec"
@@ -98,37 +86,15 @@ module CodeToMarkdeep
 
   ##############################
 
-  def process!
-    @input_file  = args[0]
-    @output_file = args[1]
-    @verbose = (ENV['CTMD_VERBOSE'] || 0).to_i
-    @lineno = 0
-    @lines = [ ]
-    @lines_taken = 0
-    @vars       = { }
-    @vars_stack = Hash.new{|h,k| h[k] = [ ]}
-    @lang_state = { }
-    @macros     = { }
-    @macro_stack = [ ]
-    
-    @input_file  = args[0]
-    @input_dir  = File.dirname(File.expand_path(@input_file))
-    @output_file = args[1]
-    @output_dir = File.dirname(File.expand_path(@output_file))
-    @html_head = [ ]
-    @html_foot = [ ]
-
-    lang = Lang.from_file(@input_file)
-    input_line = "<<#{@input_file}>>".freeze
-    input_line = Line.new(input_line, original: input_line, lang: lang)
-    insert_file(@input_file, input_line)
-
-    logger.info "writing #{@output_file}"
-    File.open(@output_file, "w") do | out |
-      @out = out
-      parse!
+  def process! input_file, output_file
+    INITS.each do | sel |
+      send(sel)
     end
-    logger.info "writing #{@output_file} : DONE"
+
+    # puts Lang[:C].describe
+
+    read_input_file! input_file
+    write_output_file! output_file
 
     create_markdeep_html!
     # create_reveal_html!
@@ -136,14 +102,18 @@ module CodeToMarkdeep
     process_sources!
     self
   end
-  
-  def process_sources!
-    logger.info " Source files: #{source_files.size}:"
-    source_files.each do | name, sf |
-      logger.info "  #{sf} | #{sf.included_by.info}"
-    end
-    self
+
+  ##############################
+
+  def cache_regex str
+    str and
+      @rx_cache[str] ||= Regexp.new(str)
   end
+
+  def log msg = nil
+    logger.debug "  #{msg} #{state.inspect} |#{line || "~~EOF~~"}|"
+  end
+
 
 end
 end

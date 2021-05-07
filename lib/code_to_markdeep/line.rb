@@ -2,6 +2,7 @@ require 'code_to_markdeep'
 require 'delegate'
 
 module CodeToMarkdeep
+  #### String with source line metadata
   class Line < Delegator
     attr_reader :to_str
     def __getobj__; @to_str; end

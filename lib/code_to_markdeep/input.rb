@@ -2,6 +2,34 @@ require 'code_to_markdeep'
 
 module CodeToMarkdeep
   module Input
+    def self.included target
+      super
+      INITS << :input_initialize
+    end
+
+    attr_reader :input_file, :input_dir
+    attr_reader :line, :lines, :lineno, :source_files
+    
+    def input_initialize *args
+      @lineno = 0
+      @lines = [ ]
+      @lines_taken = 0
+      @lang_state = { }
+      @source_files = { }
+    end
+
+    def read_input_file! file
+      @input_file  = file
+      @input_dir  = File.dirname(File.expand_path(@input_file))
+
+      lang = Lang.from_file(@input_file)
+      input_line = "<<#{@input_file}>>".freeze
+      input_line = Line.new(input_line, original: input_line, lang: lang)
+      insert_file(@input_file, input_line)
+    end
+    
+    ######################################
+    
     def lang_state lang
       @lang_state[lang.name] ||= { }
     end
@@ -22,39 +50,30 @@ module CodeToMarkdeep
     @line = @peek
   end
 
-  def cache_regex str
-    str and
-      (@rx_cache ||= {})[str] ||= Regexp.new(str)
-  end
-
   def _peek
     while true
       line = __take
       log :_peek if verbose >= 5
 
-      # HACK:
-      lang = line && line.lang
-      case line
-      when nil
-      when lang && lang.hidden_comment_begin_rx
-        line = Line.new("//$ BEGIN HIDDEN", original: line)
-      when lang && lang.hidden_comment_end_rx
-        line = Line.new("//$ END HIDDEN"  , original: line)
-      else
-        next if Array(@vars[:IGNORE_RX]).compact.any? do |rx_str|
-          cache_regex(rx_str) === line
-        end
-      end
-
       var = nil
       capture_macro = true
-      case
-      when ! line
+
+      unless line
         unless @eof
           logger.info "  #{$0} : peek: EOF after #{@lines_taken} lines"
           @eof = true
         end
         return nil
+      end
+      lang = line.lang
+      
+      # HACK:
+      # See Meta#parse_hidden_directive for
+      # an alternative:
+      line = parse_hidden_directive(line)
+      next if line == :next
+      
+      case
       when line.lang.emacs_rx.match(line.to_s)
       when line.lang.name == :Markdown
         if @macro
@@ -62,46 +81,7 @@ module CodeToMarkdeep
         else
           return line
         end
-      when line.lang.set_rx.match(line.to_s)
-        var = $1.to_sym
-        val = $2
-        # $stderr.puts "SET #{var.inspect} #{val.inspect}"
-        @vars[var] = val
-      when line.lang.append_rx.match(line.to_s)
-        binding.pry unless $1
-        var = $1.to_sym
-        val = $2
-        @vars[var] = Array(@vars[var])
-        @vars[var] << val
-      when line.lang.begin_rx.match(line.to_s)
-        var = $1.to_sym
-        val = $2
-        @vars_stack[var].push(@vars[var])
-        # logger.info "  BEGIN #{var.inspect} #{val.inspect}"
-        case val
-        when nil, ""
-          val = (@vars[var] || 0) + 1
-        end
-        case var
-        when :MACRO
-          macro_name = val
-          @macro_stack.push @macro
-          @macro = @macros[macro_name] = [ ]
-          logger.info "  MACRO #{macro_name} ..."
-        end
-        @vars = @vars.dup
-        @vars[var] = val
-        # ap(var: var, val: val, line: line.info) if var == :LINENO
-      when line.lang.end_rx.match(line.to_s)
-        var = $1.to_sym
-        @vars = @vars.dup
-        val = @vars[var] = @vars_stack[var].pop
-        case var
-        when :MACRO
-          logger.info "  MACRO #{macro_name} : #{@macro.size} lines"
-          @macro = @macro_stack.pop
-        end
-        # ap(var: var, val: val, line: line.info) if var == :LINENO
+      when parse_variable_directive(line)
       when m = line.lang.meta_eol_rx.match(line.to_s)
         meta_eol line, m
       when line.lang.hidden_rx.match(line.to_s)

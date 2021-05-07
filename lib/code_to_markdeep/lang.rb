@@ -5,9 +5,14 @@ module CodeToMarkdeep
   class Lang
     LANG = { }
     TAG  = { }
+    def self.[] name
+      LANG[name.to_sym]
+    end
+    
     def self.from_file file
       LANG.values.find {|l| l.file_name_rx =~ file } || LANG[:C]
     end
+    
     attr_reader :name
     def initialize opts
       @opts = opts
@@ -34,8 +39,7 @@ module CodeToMarkdeep
         "Lang[#{@name.inspect}]"
       end
     end
-      
- 
+
     def convert_rx rx, k
       return rx if name == :C
       case
@@ -50,6 +54,7 @@ module CodeToMarkdeep
       # ap(convert_rx: { lang: name, k: k, rx: rx, result: result}) if name == :Scheme
       result
     end
+    
     def convert_rx_default rx, k
       if comment_line
         s = comment_line[0]
@@ -103,6 +108,16 @@ module CodeToMarkdeep
     # alias :md_end_rx :md_begin_rx
     # alias :md_end    :md_begin
 
+    def describe
+      patterns = C_attrs.keys.map do | attr |
+        [ attr, send(attr) ]
+      end
+      {
+        name: name,
+        patterns: Hash[patterns],
+      }.ai
+    end
+    
     # new(name: :C)
     new(C_attrs)
     new(name: :Markdown,
