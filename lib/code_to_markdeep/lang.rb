@@ -83,7 +83,7 @@ module CodeToMarkdeep
       text:           "/// ",
       convert_rx_f: nil,
 
-      emacs_rx: %r{-\*- .* -\*-},
+      editor_annotation_rx: %r{-\*- .* -\*-},
       blank_rx: /^\s*$/,
       html_rx:  %r{^<},
       top_level_brace_rx: /^[}{]\s*$/,

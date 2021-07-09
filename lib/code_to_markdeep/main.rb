@@ -117,11 +117,31 @@ module CodeToMarkdeep
       @rx_cache[str] ||= Regexp.new(str)
   end
 
-  def log msg = nil
-    logger.debug "  #{msg} #{state.inspect} |#{line || "~~EOF~~"}|"
+  def log msg = nil, log_line = nil
+    log_line ||= @log_line
+    
+    if file_name = (log_line.file rescue nil) and @log_file_name != file_name
+      @log_file_name = file_name
+      logger.debug do
+        log_msg "file", file_name
+      end
+    end
+
+    logger.debug do
+      msg = log_msg(msg || yield, log_line)
+      if log_line
+        msg << '%3s ' % (log_line.lineno rescue '_')
+        msg << "|#{log_line.to_s}|"
+      else
+        msg << '<EOF>'
+      end
+    end
   end
 
-
+  def log_msg msg = nil, log_line = nil
+    log_line ||= @log_line
+    '%-35s' % "#{log_line.lang.name rescue '_'} : #{state} : #{msg} "
+  end
 end
 end
 

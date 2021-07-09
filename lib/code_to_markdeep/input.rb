@@ -49,14 +49,15 @@ module CodeToMarkdeep
       log :peek if verbose >= 4
       @peek = _peek
     end
-    @line = @peek
+    log "peek => #{@peek}" if verbose >= 4
+    @log_line = @peek
   end
 
   def _peek
     while true
       line = __take
       log :_peek if verbose >= 5
-
+      
       var = nil
       capture_macro = true
 
@@ -67,23 +68,28 @@ module CodeToMarkdeep
         end
         return nil
       end
-      lang = line.lang
-      
+
       # HACK:
       # See Meta#parse_hidden_directive for
       # an alternative:
       line = parse_hidden_directive(line)
-      next if line == :next
-      
+      lang = line.lang
+
       case
-      when line.lang.emacs_rx.match(line.to_s)
+      when line == :next
+        next
+      when line.lang.editor_annotation_rx.match(line.to_s)
+        log :editor_annotation if verbose >= 6
       when line.lang.name == :Markdown
+        log :Markdown_line if verbose >= 6
         if @macro
+          log :macro_line if verbose >= 6
           @macro << line
         else
           return line
         end
       when parse_variable_directive(line)
+        log :variable_directive if verbose >= 6
       when m = line.lang.meta_eol_rx.match(line.to_s)
         meta_eol line, m
       when line.lang.hidden_rx.match(line.to_s)
@@ -102,15 +108,17 @@ module CodeToMarkdeep
           return line
         end
       end
+
+      log :_peek_again if verbose >= 5
     end
   end
 
   def __take
-    @lines.shift
+    @log_line = @lines.shift
   end
 
   def __peek
-    @lines.first
+    @log_line = @lines.first
   end
 
   def insert_file file, included_by # = nil

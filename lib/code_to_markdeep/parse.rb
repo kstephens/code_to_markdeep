@@ -11,7 +11,7 @@ module CodeToMarkdeep
 
   def parse!
     state :start
-    while peek
+    while @line = peek
       log :parse! if verbose >= 2
       # binding.pry
       send(state)
