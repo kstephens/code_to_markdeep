@@ -22,7 +22,7 @@ module CodeToMarkdeep
     end
 
     def parse_hidden_directive line
-      case
+      case line
       when line.lang.hidden_comment_begin_rx
         Line.new("//$ BEGIN HIDDEN", original: line)
       when line.lang.hidden_comment_end_rx
