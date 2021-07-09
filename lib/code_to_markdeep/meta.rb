@@ -41,21 +41,22 @@ module CodeToMarkdeep
     end
     
     def parse_variable_directive line
-      case
-      when line.lang.set_rx.match(line.to_s)
+      lang = line.lang
+      case line.to_s
+      when lang.set_rx
         var = $1.to_sym
         val = $2
         # $stderr.puts "SET #{var.inspect} #{val.inspect}"
         @vars[var] = val
         
-      when line.lang.append_rx.match(line.to_s)
+      when lang.append_rx
         binding.pry unless $1
         var = $1.to_sym
         val = $2
         @vars[var] = Array(@vars[var])
         @vars[var] << val
         
-      when line.lang.begin_rx.match(line.to_s)
+      when lang.begin_rx
         var = $1.to_sym
         val = $2
         @vars_stack[var].push(@vars[var])
@@ -78,7 +79,7 @@ module CodeToMarkdeep
         @vars[var] = val
         # ap(var: var, val: val, line: line.info) if var == :LINENO
 
-      when line.lang.end_rx.match(line.to_s)
+      when line.lang.end_rx
         var = $1.to_sym
         @vars = @vars.dup
         val = @vars[var] = @vars_stack[var].pop
