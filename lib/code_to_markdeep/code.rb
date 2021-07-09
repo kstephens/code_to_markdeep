@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'code_to_markdeep'
 
 module CodeToMarkdeep
@@ -113,7 +115,7 @@ module CodeToMarkdeep
     def word_break_ line_, max_len, token_rx
       line = line_
       return line if line.size <= max_len
-      tokens = [ '' ]
+      tokens = [ ''.dup ]
       acc = ''.dup
       while ! line.empty? and m = token_rx.match(line)
         before, token, line = $`, $1, $'

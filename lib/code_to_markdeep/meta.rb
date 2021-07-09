@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'code_to_markdeep'
 
 module CodeToMarkdeep
@@ -91,8 +93,7 @@ module CodeToMarkdeep
       end
       line
     end
-    
-    
+
     def macro
       lang = line.lang
       case line

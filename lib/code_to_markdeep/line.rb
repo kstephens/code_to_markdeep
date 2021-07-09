@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'code_to_markdeep'
 require 'delegate'
 
@@ -24,14 +26,15 @@ module CodeToMarkdeep
       opts = _to_h(x).merge(_to_h(o)).merge(opts)
       # ap(Line: {x: x, opts: opts})
       @file, @lineno, @lang, @source_file, @vars =
-        opts.values_at(:file, :lineno, :lang, :source_file, :vars)
+      opts.values_at(:file, :lineno, :lang, :source_file, :vars)
+      @file.freeze
       # ap(Line: self, caller: caller) unless @lang
       raise unless @lang
     end
 
     def inspect
       h = to_h
-      h[:source_file] = h[:source_file] && h[:source_file].to_s
+      h[:source_file] &&= h[:source_file].to_s
       "Line[#{h.ai}]"
     end
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "code_to_markdeep/version"
 
 module CodeToMarkdeep
