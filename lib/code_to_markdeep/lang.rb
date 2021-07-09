@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'code_to_markdeep'
+require 'code_to_markdeep/rx'
 
 module CodeToMarkdeep
   #### A description of a programming language
@@ -43,8 +44,9 @@ module CodeToMarkdeep
     end
 
     def convert_rx rx, k
-      return rx if name == :C
       case
+      when name == :C
+        rx
       when f = convert_rx_f
         result = f.call(rx, k)
         result = Regexp.new(result) if String === result
@@ -61,10 +63,11 @@ module CodeToMarkdeep
       if comment_line
         s = comment_line[0]
         s = rx.to_s.gsub(%r{\\/}, s)
-        Regexp.new(s)
+        rx = Regexp.new(s)
       else
         rx
       end
+      Rx[rx]
     end
 
     C_attrs = {
@@ -121,6 +124,12 @@ module CodeToMarkdeep
     end
     
     # new(name: :C)
+    def self.initialize! main
+      if main.verbose >= 10
+        Rx::log_fn = lambda do | msg, *args, &blk |
+          main.log(msg, *args, &blk)
+        end
+      end
     new(C_attrs)
     new(name: :Markdown,
         file_name_rx:   /(\.md$)/,
@@ -177,5 +186,6 @@ module CodeToMarkdeep
           end
         end
        )
+    end
   end
 end

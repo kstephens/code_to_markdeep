@@ -33,7 +33,7 @@ module CodeToMarkdeep
   class Main
 
   attr_reader :args, :exitcode
-  attr_reader :verbose, :logger
+  attr_reader :verbose, :debug, :logger
 
   #####################################
 
@@ -49,7 +49,16 @@ module CodeToMarkdeep
 
   def initialize
     @verbose = (ENV['CTMD_VERBOSE'] || 0).to_i
+    @debug   = (ENV['CTMD_DEBUG'] || 0).to_i
     @logger  = ::Logger.new($stderr)
+    @logger.formatter = Proc.new do | severity, datetime, progname, msg |
+      "%-6s %s\n" % [ severity, msg ]
+    end
+    
+    @lines = [ ]
+    @state = :INITIALIZE
+    @log_line = "~~~INITIALIZE~~~"
+    Lang.initialize! self
   end
   
   def main args
@@ -62,8 +71,12 @@ module CodeToMarkdeep
   def run!
     logger.info "  #{$0} : started"
     t0 = Time.now
-    Timeout.timeout(20) do
+    if debug >= 1
       process! args[0], args[1]
+    else
+      Timeout.timeout(60) do
+        process! args[0], args[1]
+      end
     end
   ensure
     t1 = Time.now
