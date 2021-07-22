@@ -44,21 +44,18 @@ module CodeToMarkdeep
       lang = line.lang
       case line.to_s
       when lang.set_rx
-        var = $1.to_sym
-        val = $2
+        var, val = $1.to_sym, $2
         # $stderr.puts "SET #{var.inspect} #{val.inspect}"
         @vars[var] = val
         
       when lang.append_rx
-        binding.pry unless $1
-        var = $1.to_sym
-        val = $2
+        # binding.pry # unless $1
+        var, val = $1.to_sym, $2
         @vars[var] = Array(@vars[var])
         @vars[var] << val
         
       when lang.begin_rx
-        var = $1.to_sym
-        val = $2
+        var, val = $1.to_sym, $2
         @vars_stack[var].push(@vars[var])
         # logger.info "  BEGIN #{var.inspect} #{val.inspect}"
         
