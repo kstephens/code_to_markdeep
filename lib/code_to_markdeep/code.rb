@@ -83,7 +83,7 @@ module CodeToMarkdeep
           end
           line = word_break(line, max_line_length) + trailing_comment
           # line.chomp ??
-          # logger.debug "   #{state} |\n#{_multiline! line_}| => |#{_multiline! line}|"
+          # logger.debug { "   #{state} |\n#{_multiline! line_}| => |#{_multiline! line}|" }
         end
       end
       line = Line.new(line_)
@@ -96,8 +96,8 @@ module CodeToMarkdeep
       if line.size > max_len
         m = %r{\A(.*,)?(.*)?\Z}.match(line)
         if false
-          logger.debug "m[1] = #{m[1].size} | #{m[1].inspect}"
-          logger.debug "m[2] = #{m[2].size} | #{m[2].inspect}"
+          logger.debug { "  m[1] = #{m[1].size} | #{m[1].inspect}" }
+          logger.debug { "  m[2] = #{m[2].size} | #{m[2].inspect}" }
         end
         args   = word_break_(m[1] || '', max_len, %r{([^,]*,)})
         stmts  = word_break_(m[2] || '', max_len, %r{([^;]*;)})
@@ -105,7 +105,7 @@ module CodeToMarkdeep
         line << "\n  " << stmts if stmts.size > 0
         if line != line_ && false
           msg = "/* ORIG: #{line_.size} : #{line_} */\n  /* NEW: #{line.size} */\n"
-          logger.debug "  word_break : |\n#{msg}"
+          logger.debug { "  word_break : |\n#{msg}" }
           line = msg << line
         end
       end
@@ -119,7 +119,7 @@ module CodeToMarkdeep
       acc = ''.dup
       while ! line.empty? and m = token_rx.match(line)
         before, token, line = $`, $1, $'
-        # logger.debug "  #{before.inspect} | #{token.inspect} | #{line.size}"
+        # logger.debug { "  #{before.inspect} | #{token.inspect} | #{line.size}" }
         acc << before
         if acc.size > max_len
           tokens << acc
@@ -137,16 +137,16 @@ module CodeToMarkdeep
         tokens << acc
       end
       tokens = tokens.reject(&:nil?).each(&:strip!).reject(&:empty?)
-      # logger.debug " token lengths: #{tokens.map(&:size).inspect}"
+      # logger.debug { "  token lengths: #{tokens.map(&:size).inspect}" }
       longest = tokens.map(&:size).max
       fmt = "%-#{longest}s"
       tokens.map!{|l| fmt % [ l ]}
-      # logger.debug " token lengths: #{tokens.map(&:size).inspect}"
+      # logger.debug { "  token lengths: #{tokens.map(&:size).inspect}" }
       sep = " \n  "
       # sep = " \\ \n  "
       line = tokens.join(sep)
       if false and line != line_
-        logger.debug "  word_break_ #{token_rx}: |\n#{_multiline! line_} => #{_multiline! line}|"
+        logger.debug { "  word_break_ #{token_rx}: |\n#{_multiline! line_} => #{_multiline! line}|" }
       end
       line
     end

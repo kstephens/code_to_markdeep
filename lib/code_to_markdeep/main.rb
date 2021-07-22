@@ -69,7 +69,7 @@ module CodeToMarkdeep
   end
 
   def run!
-    logger.info "  #{$0} : started"
+    logger.info "started"
     t0 = Time.now
     if debug >= 1
       process! args[0], args[1]
@@ -80,7 +80,7 @@ module CodeToMarkdeep
     end
   ensure
     t1 = Time.now
-    msg = "#{$0} : #{$! && $!.inspect} finished in #{t1 - t0} sec"
+    msg = "#{$! && $!.inspect} finished in #{t1 - t0} sec"
     if exc = $!
       logger.error msg
       logger.error exc.backtrace.map(&:to_s) * "\n"

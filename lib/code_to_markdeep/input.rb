@@ -63,7 +63,7 @@ module CodeToMarkdeep
 
       unless line
         unless @eof
-          logger.info "  #{$0} : peek: EOF after #{@lines_taken} lines"
+          logger.info "peek: EOF after #{@lines_taken} lines"
           @eof = true
         end
         return nil

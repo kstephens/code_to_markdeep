@@ -32,7 +32,7 @@ module CodeToMarkdeep
     
     def emit_text str, line = str
       str = str.to_s.gsub(RX_var_ref) do | m |
-        # logger.debug "str = #{str.inspect} $1=#{$1.inspect}"
+        # logger.debug { "str = #{str.inspect} $1=#{$1.inspect}" }
         @vars[$1.to_sym] || lang_state(line.lang)[$1.to_sym]
       end
       out.puts str
