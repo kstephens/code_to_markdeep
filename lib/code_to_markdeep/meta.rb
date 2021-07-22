@@ -22,12 +22,13 @@ module CodeToMarkdeep
     end
 
     def parse_hidden_directive line
-      case line
-      when line.lang.hidden_comment_begin_rx
+      case
+      when line.lang.hidden_comment_begin_rx === line
         Line.new("//$ BEGIN HIDDEN", original: line)
-      when line.lang.hidden_comment_end_rx
+      when line.lang.hidden_comment_end_rx === line
         Line.new("//$ END HIDDEN"  , original: line)
       when is_ignore_line?(line)
+        log "IGNORE_RX : skipped"
         :next
       else
         line
@@ -35,7 +36,9 @@ module CodeToMarkdeep
     end
 
     def is_ignore_line? line
-      Array(@vars[:IGNORE_RX]).compact.any? do |rx_str|
+      # binding.pry unless Array(@vars[:IGNORE_RX]).empty?
+      Array(@vars[:IGNORE_RX]).any? do |rx_str|
+        # binding.pry if cache_regex(rx_str) === line
         cache_regex(rx_str) === line
       end
     end

@@ -73,7 +73,7 @@ module CodeToMarkdeep
       # See Meta#parse_hidden_directive for
       # an alternative:
       line = parse_hidden_directive(line)
-      lang = line.lang
+      lang = line.lang rescue nil
 
       case
       when line == :next
